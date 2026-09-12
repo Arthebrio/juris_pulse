@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JURIS_PULSE - Prueba</title>
+    <style>
+        body { background: #020617; color: #f8fafc; font-family: sans-serif; padding: 20px; }
+        .tarjeta { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+        .rubro { color: #f59e0b; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>JURIS_PULSE</h1>
+    <div id="listadoContainer">Cargando...</div>
+
+    <script>
+        (async () => {
+            try {
+                const response = await fetch('/api/jurisprudencias/todas');
+                const data = await response.json();
+                const container = document.getElementById('listadoContainer');
+                if (data.success && data.tesis) {
+                    container.innerHTML = data.tesis.map(t => `
+                        <div class="tarjeta">
+                            <div>📌 REG: ${t.registro_digital} | ${t.tipo}</div>
+                            <div class="rubro">${t.rubro || 'Sin rubro'}</div>
+                            <div style="color: #94a3b8; font-size: 12px;">${t.resumen_ia || ''}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = 'No hay datos';
+                }
+            } catch (e) {
+                document.getElementById('listadoContainer').innerHTML = 'Error: ' + e.message;
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>JURIS_PULSE · Consulta Quirúrgica</title>
+
+    <!-- Font Awesome (iconos) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- CSS propio (ruta absoluta desde la raíz del servidor) -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- ==================================================================
+         ENCABEZADO
+         ================================================================== -->
+    <header>
+        <h1 class="logo">
+            <span>JURIS</span><span class="pulse">_PULSE</span>
+        </h1>
+    </header>
+
+    <!-- ==================================================================
+         CONTENEDOR PRINCIPAL
+         ================================================================== -->
+    <div class="contenedor">
+
+        <!-- ---------- FILTROS ---------- -->
+        <div class="grid-filtros">
+            <select id="filtroTipo" class="selector">
+                <option value="todas">📋 Todas las Tesis</option>
+                <option value="Jurisprudencia">⚖️ Jurisprudencia</option>
+                <option value="Aislada">📄 Aislada</option>
+            </select>
+
+            <select id="filtroMateria" class="selector">
+                <option value="todas">📚 Materia: Todas</option>
+                <option value="Penal">Penal</option>
+                <option value="Civil">Civil</option>
+                <option value="Administrativa">Administrativa</option>
+                <option value="Constitucional">Constitucional</option>
+                <option value="Laboral">Laboral</option>
+                <option value="Común">Común</option>
+            </select>
+        </div>
+
+        <!-- ---------- CAJA DE BÚSQUEDA + TOGGLE SEMÁNTICO ---------- -->
+        <div class="caja-busqueda">
+            <i class="fas fa-search icono-buscar"></i>
+            <input
+                type="text"
+                id="filtroBusqueda"
+                placeholder="Buscar por rubro o concepto..."
+            >
+            <label class="toggle-semantico" id="toggleLabel">
+                <input type="checkbox" id="toggleSemantica">
+                <span>Semántica</span>
+            </label>
+        </div>
+
+        <!-- ---------- MÉTRICAS ---------- -->
+        <div class="dashboard-metricas">
+            <div class="dashboard-titulo">📊 MÉTRICAS DE FILTRADO</div>
+            <div class="grid-metricas">
+                <div class="metrica">
+                    <div class="metrica-label">Restantes</div>
+                    <div class="metrica-valor dorado" id="relojRestantes">...</div>
+                </div>
+                <div class="metrica">
+                    <div class="metrica-label">Juris</div>
+                    <div class="metrica-valor" id="relojJuris">...</div>
+                </div>
+                <div class="metrica">
+                    <div class="metrica-label">Aisladas</div>
+                    <div class="metrica-valor" id="relojAisladas">...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ---------- LISTADO DE TESIS ---------- -->
+        <div class="listado" id="listadoContainer">
+            <div class="estado-vacio">
+                <i class="fas fa-circle-notch fa-spin" style="color:#f59e0b;"></i>
+                Conectando al backend...
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ==================================================================
+         CORTINA DE DETALLE
+         ================================================================== -->
+    <div class="cortina oculta" id="cortinaDetalle">
+        <div class="cortina-contenido">
+            <div class="cortina-tirador"></div>
+
+            <div class="cortina-scroll">
+                <!-- Encabezado del detalle -->
+                <div class="cortina-header">
+                    <div class="cortina-badges">
+                        <span id="detBadgeTipo">...</span>
+                        <span id="detBadgeMateria">...</span>
+                    </div>
+                    <h2 class="cortina-rubro" id="detRubro">Cargando...</h2>
+                    <div class="cortina-meta">
+                        <span>📌 REG: <span id="detReg">...</span></span>
+                        <span id="detFecha">...</span>
+                    </div>
+                </div>
+
+                <!-- Cuerpo de la tesis -->
+                <div class="cortina-texto" id="detTextoContenedor">Cargando...</div>
+            </div>
+
+            <!-- Botonera -->
+            <div class="botonera">
+                <button class="btn btn-volver" id="btnCerrarCortina">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </button>
+                <button class="btn btn-copiar" id="btnCopiarTexto">
+                    <i class="fas fa-copy"></i> Copiar Tesis
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================================================================
+         FOOTER
+         ================================================================== -->
+    <footer>
+        © 2026 JURIS_PULSE · Consulta Quirúrgica
+    </footer>
+
+    <!-- ==================================================================
+         SCRIPT (ruta absoluta desde la raíz del servidor)
+         ================================================================== -->
+    <script src="/static/js/script.js" defer></script>
+
+</body>
+</html>
