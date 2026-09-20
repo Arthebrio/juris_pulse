@@ -8,10 +8,10 @@
     <!-- Font Awesome (iconos) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
-    <!-- CSS propio (ruta absoluta desde la raíz del servidor) -->
+    <!-- CSS propio (ruta absoluta) -->
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
-<body>
+<body data-modo="filtros">
 
     <!-- ==================================================================
          ENCABEZADO
@@ -27,7 +27,22 @@
          ================================================================== -->
     <div class="contenedor">
 
-        <!-- ---------- FILTROS ---------- -->
+        <!-- ---------- PESTAÑAS DE MODO ---------- -->
+        <div class="pestanas">
+            <button class="pestana activa" id="pestanaFiltros" data-modo="filtros">
+                <i class="fas fa-filter"></i> Filtros
+            </button>
+            <button class="pestana" id="pestanaSemantica" data-modo="semantico">
+                <i class="fas fa-brain"></i> Semántica
+            </button>
+        </div>
+
+        <!-- ---------- MENSAJE CONTEXTUAL ---------- -->
+        <div class="mensaje-contextual" id="mensajeContextual">
+            Explora el corpus por tipo, materia y texto.
+        </div>
+
+        <!-- ---------- FILTROS (SIEMPRE VISIBLES) ---------- -->
         <div class="grid-filtros">
             <select id="filtroTipo" class="selector">
                 <option value="todas">📋 Todas las Tesis</option>
@@ -46,18 +61,30 @@
             </select>
         </div>
 
-        <!-- ---------- CAJA DE BÚSQUEDA + TOGGLE SEMÁNTICO ---------- -->
-        <div class="caja-busqueda">
+        <!-- ---------- CAJA DE BÚSQUEDA LOCAL (MODO FILTROS) ---------- -->
+        <div class="caja-busqueda" id="cajaLocal">
             <i class="fas fa-search icono-buscar"></i>
             <input
                 type="text"
                 id="filtroBusqueda"
-                placeholder="Buscar por rubro o concepto..."
+                placeholder="Buscar por rubro o resumen..."
             >
-            <label class="toggle-semantico" id="toggleLabel">
-                <input type="checkbox" id="toggleSemantica">
-                <span>Semántica</span>
-            </label>
+        </div>
+
+        <!-- ---------- CAJA SEMÁNTICA (MODO SEMÁNTICO) ---------- -->
+        <div class="caja-semantica" id="cajaSemantica" style="display:none;">
+            <textarea
+                id="consultaSemantica"
+                placeholder="Ej: ¿cómo impugnar un acto de autoridad que viola derechos humanos?"
+            ></textarea>
+            <div class="boton-semantica">
+                <button class="btn-buscar-semantica" id="btnBuscarSemantica">
+                    <i class="fas fa-brain"></i> Buscar por significado
+                </button>
+                <div class="contador-busquedas" id="contadorBusquedas">
+                    20/20
+                </div>
+            </div>
         </div>
 
         <!-- ---------- MÉTRICAS ---------- -->
@@ -81,7 +108,7 @@
 
         <!-- ---------- LISTADO DE TESIS ---------- -->
         <div class="listado" id="listadoContainer">
-            <div class="estado-vacio">
+            <div class="estado-cargando">
                 <i class="fas fa-circle-notch fa-spin" style="color:#f59e0b;"></i>
                 Conectando al backend...
             </div>
@@ -97,7 +124,6 @@
             <div class="cortina-tirador"></div>
 
             <div class="cortina-scroll">
-                <!-- Encabezado del detalle -->
                 <div class="cortina-header">
                     <div class="cortina-badges">
                         <span id="detBadgeTipo">...</span>
@@ -110,11 +136,9 @@
                     </div>
                 </div>
 
-                <!-- Cuerpo de la tesis -->
                 <div class="cortina-texto" id="detTextoContenedor">Cargando...</div>
             </div>
 
-            <!-- Botonera -->
             <div class="botonera">
                 <button class="btn btn-volver" id="btnCerrarCortina">
                     <i class="fas fa-arrow-left"></i> Volver
@@ -133,9 +157,7 @@
         © 2026 JURIS_PULSE · Consulta Quirúrgica
     </footer>
 
-    <!-- ==================================================================
-         SCRIPT (ruta absoluta desde la raíz del servidor)
-         ================================================================== -->
+    <!-- SCRIPT (ruta absoluta) -->
     <script src="/static/js/script.js" defer></script>
 
 </body>

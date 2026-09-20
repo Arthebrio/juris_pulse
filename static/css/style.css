@@ -1,37 +1,64 @@
 /* ============================================================================
-   🎨 JURIS_PULSE - HOJA DE ESTILOS
+   🎨 JURIS_PULSE - HOJA DE ESTILOS (VERSIÓN DUAL: FILTROS + SEMÁNTICA)
    ============================================================================
-   Diseño responsivo, paleta oscura con acento dorado.
    Bloques:
-     1. Variables (colores y medidas)
+     1. Variables
      2. Reset y base
      3. Layout principal
      4. Encabezado
-     5. Filtros y búsqueda
-     6. Métricas (dashboard)
-     7. Listado de tesis (tarjetas)
-     8. Cortina de detalle
-     9. Botones
-    10. Responsive (móvil)
+     5. Pestañas de modo
+     6. Mensaje contextual
+     7. Filtros (Tipo, Materia)
+     8. Caja de búsqueda (modo filtros)
+     9. Caja semántica (modo semántico)
+    10. Métricas
+    11. Listado de tesis (tarjetas)
+    12. Badge de similitud (semántica)
+    13. Cortina de detalle
+    14. Botones
+    15. Estados (cargando, vacío, error)
+    16. Responsive
+    17. Footer
    ============================================================================ */
 
 
 /* ============================================================================
-   1. VARIABLES (colores y medidas)
+   1. VARIABLES
    ============================================================================ */
 :root {
+    /* Colores base */
     --fondo-principal: #020617;
     --fondo-tarjeta: #0f172a;
     --fondo-input: #1e293b;
     --borde: #1e293b;
-    --acento: #f59e0b;
-    --acento-suave: #fbbf24;
+
+    /* Acento modo FILTROS (dorado) */
+    --acento-filtros: #f59e0b;
+    --acento-filtros-suave: #fbbf24;
+
+    /* Acento modo SEMÁNTICA (violeta) */
+    --acento-semantica: #8b5cf6;
+    --acento-semantica-suave: #a78bfa;
+
+    /* Acento activo (cambia según el modo, se sobreescribe con [data-modo]) */
+    --acento: var(--acento-filtros);
+    --acento-suave: var(--acento-filtros-suave);
+
+    /* Texto */
     --texto-principal: #e2e8f0;
     --texto-secundario: #94a3b8;
     --texto-tenue: #64748b;
     --rojo-error: #f87171;
+
+    /* Medidas */
     --radio: 12px;
     --transicion: 0.2s ease;
+}
+
+/* Cuando el body tenga data-modo="semantico", el acento cambia a violeta */
+body[data-modo="semantico"] {
+    --acento: var(--acento-semantica);
+    --acento-suave: var(--acento-semantica-suave);
 }
 
 
@@ -92,12 +119,70 @@ header {
 }
 
 .logo .pulse {
-    color: var(--acento);
+    color: var(--acento-filtros);
 }
 
 
 /* ============================================================================
-   5. FILTROS Y BÚSQUEDA
+   5. PESTAÑAS DE MODO
+   ============================================================================ */
+.pestanas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    background-color: var(--fondo-tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    padding: 6px;
+}
+
+.pestana {
+    background: transparent;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--texto-secundario);
+    cursor: pointer;
+    transition: all var(--transicion);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: inherit;
+}
+
+.pestana:hover {
+    color: var(--texto-principal);
+}
+
+.pestana.activa {
+    background-color: var(--acento-filtros);
+    color: var(--fondo-principal);
+}
+
+body[data-modo="semantico"] .pestana.activa {
+    background-color: var(--acento-semantica);
+}
+
+
+/* ============================================================================
+   6. MENSAJE CONTEXTUAL
+   ============================================================================ */
+.mensaje-contextual {
+    font-size: 12px;
+    color: var(--texto-secundario);
+    padding: 10px 12px;
+    background-color: rgba(15, 23, 42, 0.5);
+    border-left: 3px solid var(--acento);
+    border-radius: 6px;
+    transition: border-color var(--transicion);
+}
+
+
+/* ============================================================================
+   7. FILTROS (TIPO Y MATERIA)
    ============================================================================ */
 .grid-filtros {
     display: grid;
@@ -116,12 +201,17 @@ header {
     outline: none;
     cursor: pointer;
     transition: border-color var(--transicion);
+    font-family: inherit;
 }
 
 .selector:focus {
     border-color: var(--acento);
 }
 
+
+/* ============================================================================
+   8. CAJA DE BÚSQUEDA (MODO FILTROS)
+   ============================================================================ */
 .caja-busqueda {
     position: relative;
 }
@@ -131,10 +221,11 @@ header {
     background-color: var(--fondo-tarjeta);
     border: 1px solid var(--borde);
     border-radius: var(--radio);
-    padding: 12px 44px 12px 40px;
+    padding: 12px 14px 12px 40px;
     color: var(--texto-principal);
     font-size: 13px;
     outline: none;
+    font-family: inherit;
     transition: border-color var(--transicion);
 }
 
@@ -152,32 +243,90 @@ header {
     pointer-events: none;
 }
 
-.toggle-semantico {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
+
+/* ============================================================================
+   9. CAJA SEMÁNTICA (MODO SEMÁNTICO)
+   ============================================================================ */
+.caja-semantica {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.caja-semantica textarea {
+    width: 100%;
+    background-color: var(--fondo-tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    padding: 14px;
+    color: var(--texto-principal);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.5;
+    transition: border-color var(--transicion);
+}
+
+.caja-semantica textarea:focus {
+    border-color: var(--acento-semantica);
+}
+
+.boton-semantica {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-buscar-semantica {
+    flex: 1;
+    background-color: var(--acento-semantica);
+    color: var(--texto-principal);
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: inherit;
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
+    justify-content: center;
+    gap: 8px;
+    transition: background var(--transicion);
+}
+
+.btn-buscar-semantica:hover:not(:disabled) {
+    background-color: var(--acento-semantica-suave);
+}
+
+.btn-buscar-semantica:disabled {
+    background-color: var(--fondo-input);
+    color: var(--texto-tenue);
+    cursor: not-allowed;
+}
+
+.contador-busquedas {
+    font-size: 12px;
     color: var(--texto-secundario);
-    cursor: pointer;
-    user-select: none;
+    font-weight: bold;
+    white-space: nowrap;
+    padding: 8px 12px;
+    background-color: var(--fondo-tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
 }
 
-.toggle-semantico input {
-    accent-color: var(--acento);
-    cursor: pointer;
-}
-
-.toggle-semantico.activo {
-    color: var(--acento);
+.contador-busquedas.agotado {
+    color: var(--rojo-error);
+    border-color: var(--rojo-error);
 }
 
 
 /* ============================================================================
-   6. MÉTRICAS (DASHBOARD)
+   10. MÉTRICAS (DASHBOARD)
    ============================================================================ */
 .dashboard-metricas {
     background-color: rgba(15, 23, 42, 0.6);
@@ -227,7 +376,7 @@ header {
 
 
 /* ============================================================================
-   7. LISTADO DE TESIS (TARJETAS)
+   11. LISTADO DE TESIS (TARJETAS)
    ============================================================================ */
 .listado {
     display: flex;
@@ -243,6 +392,7 @@ header {
     padding: 14px;
     cursor: pointer;
     transition: border-color var(--transicion), transform var(--transicion);
+    position: relative;
 }
 
 .tarjeta:hover {
@@ -251,7 +401,7 @@ header {
 }
 
 .tarjeta.jurisprudencia {
-    border-left: 4px solid var(--acento);
+    border-left: 4px solid var(--acento-filtros);
 }
 
 .tarjeta.aislada {
@@ -292,16 +442,25 @@ header {
     cursor: default;
 }
 
-.estado-vacio {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--texto-tenue);
-    font-size: 13px;
+
+/* ============================================================================
+   12. BADGE DE SIMILITUD (SEMÁNTICA)
+   ============================================================================ */
+.badge-similitud {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background-color: var(--acento-semantica);
+    color: var(--texto-principal);
+    font-size: 10px;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 6px;
 }
 
 
 /* ============================================================================
-   8. CORTINA DE DETALLE
+   13. CORTINA DE DETALLE
    ============================================================================ */
 .cortina {
     position: fixed;
@@ -390,7 +549,7 @@ header {
 
 
 /* ============================================================================
-   9. BOTONES
+   14. BOTONES
    ============================================================================ */
 .botonera {
     display: flex;
@@ -408,6 +567,7 @@ header {
     font-weight: bold;
     cursor: pointer;
     border: none;
+    font-family: inherit;
     transition: background var(--transicion);
 }
 
@@ -431,7 +591,32 @@ header {
 
 
 /* ============================================================================
-   10. RESPONSIVE (MÓVIL)
+   15. ESTADOS (CARGANDO, VACÍO, ERROR)
+   ============================================================================ */
+.estado-vacio {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--texto-tenue);
+    font-size: 13px;
+}
+
+.estado-cargando {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--texto-secundario);
+    font-size: 13px;
+}
+
+.estado-error {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--rojo-error);
+    font-size: 13px;
+}
+
+
+/* ============================================================================
+   16. RESPONSIVE (MÓVIL)
    ============================================================================ */
 @media (max-width: 600px) {
     .contenedor {
@@ -441,6 +626,11 @@ header {
 
     .logo {
         font-size: 20px;
+    }
+
+    .pestana {
+        font-size: 12px;
+        padding: 10px;
     }
 
     .grid-filtros {
@@ -458,7 +648,7 @@ header {
 
 
 /* ============================================================================
-   FOOTER
+   17. FOOTER
    ============================================================================ */
 footer {
     border-top: 1px solid var(--borde);
