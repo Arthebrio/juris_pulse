@@ -1,12 +1,12 @@
 /* ============================================================================
-   🚗 JURIS_PULSE - SCRIPT PRINCIPAL (VERSIÓN DUAL)
+   🚗 JURIS_PULSE - SCRIPT PRINCIPAL (VERSIÓN DUAL + CARGA POR LOTES)
    ============================================================================
    Bloques:
      1. Estado global
      2. Referencias al DOM
      3. Utilidades
      4. Persistencia (contador)
-     5. Carga inicial
+     5. Carga inicial (índice + hidratación de resúmenes)
      6. Cambio de modo
      7. Poda de árbol (modo filtros)
      8. Búsqueda semántica (modo semántico)
@@ -21,26 +21,31 @@
    1. ESTADO GLOBAL
    ============================================================================ */
 const AppState = {
-    // Datos base
-    todasLasTesis: [],           // Las 4,792 tesis del backend
-    tesisFiltradas: [],          // Resultado que se muestra en el listado
+    // Datos base (índice completo del corpus, SIN resumen_ia)
+    todasLasTesis: [],
+
+    // Resultado que se muestra en el listado
+    tesisFiltradas: [],
 
     // Modo activo
     modoActual: 'filtros',       // 'filtros' | 'semantico'
 
     // Estado del modo FILTROS
-    consultaLocal: '',           // Texto en la caja de filtros
+    consultaLocal: '',
 
     // Estado del modo SEMÁNTICO
-    consultaSemantica: '',       // Texto en la caja semántica
-    resultadosSemanticos: [],    // Las 20 (o menos) tesis similares
+    consultaSemantica: '',
+    resultadosSemanticos: [],
 
     // Persistencia
-    busquedasRestantes: 20,      // Contador de búsquedas semánticas
-    maxBusquedas: 20,            // Límite por sesión
+    busquedasRestantes: 20,
+    maxBusquedas: 20,
 
     // Cortina
-    registroActual: null
+    registroActual: null,
+
+    // Cache de resúmenes ya hidratados (evita pedirlos dos veces)
+    cacheResumenes: {}
 };
 
 
@@ -48,36 +53,28 @@ const AppState = {
    2. REFERENCIAS AL DOM
    ============================================================================ */
 const DOM = {
-    // Pestañas
     pestanaFiltros: document.getElementById('pestanaFiltros'),
     pestanaSemantica: document.getElementById('pestanaSemantica'),
 
-    // Mensaje contextual
     mensajeContextual: document.getElementById('mensajeContextual'),
 
-    // Filtros (Tipo, Materia)
     filtroTipo: document.getElementById('filtroTipo'),
     filtroMateria: document.getElementById('filtroMateria'),
 
-    // Caja local (modo filtros)
     cajaLocal: document.getElementById('cajaLocal'),
     filtroBusqueda: document.getElementById('filtroBusqueda'),
 
-    // Caja semántica (modo semántico)
     cajaSemantica: document.getElementById('cajaSemantica'),
     consultaSemantica: document.getElementById('consultaSemantica'),
     btnBuscarSemantica: document.getElementById('btnBuscarSemantica'),
     contadorBusquedas: document.getElementById('contadorBusquedas'),
 
-    // Métricas
     relojRestantes: document.getElementById('relojRestantes'),
     relojJuris: document.getElementById('relojJuris'),
     relojAisladas: document.getElementById('relojAisladas'),
 
-    // Listado
     listadoContainer: document.getElementById('listadoContainer'),
 
-    // Cortina
     cortinaDetalle: document.getElementById('cortinaDetalle'),
     detBadgeTipo: document.getElementById('detBadgeTipo'),
     detBadgeMateria: document.getElementById('detBadgeMateria'),
@@ -162,13 +159,15 @@ function actualizarContador() {
 
 
 /* ============================================================================
-   5. CARGA INICIAL
+   5. CARGA INICIAL (ÍNDICE + HIDRATACIÓN DE RESÚMENES)
    ============================================================================ */
 
 async function cargarTesisDelBackend() {
-    log('Cargando tesis del backend...');
+    log('Cargando índice del corpus desde el backend...');
     try {
-        const response = await fetch('/api/jurisprudencias/todas');
+        // ✅ CAMBIO CLAVE: /indice en vez de /todas
+        // Trae todo el corpus SIN resumen_ia (~11 MB vs ~40 MB).
+        const response = await fetch('/api/jurisprudencias/indice');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const data = await response.json();
@@ -177,7 +176,7 @@ async function cargarTesisDelBackend() {
         }
 
         AppState.todasLasTesis = data.tesis;
-        log(`${AppState.todasLasTesis.length} tesis cargadas desde el backend.`);
+        log(`Índice cargado: ${AppState.todasLasTesis.length} tesis.`);
         ejecutarPodaDeArbol();
     } catch (error) {
         log(`Error al cargar tesis: ${error.message}`, 'error');
@@ -191,6 +190,69 @@ async function cargarTesisDelBackend() {
     }
 }
 
+/**
+ * Hidrata los resúmenes IA de un conjunto de registros.
+ * Pide al backend solo los resúmenes faltantes (los que no están en cache)
+ * y actualiza el data-resumen de cada tarjeta en el DOM.
+ *
+ * Estrategia: máx 200 registros por petición.
+ */
+async function hidratarResumenes(listaTesis) {
+    if (!listaTesis || listaTesis.length === 0) return;
+
+    // Filtrar los que NO están en cache
+    const faltantes = listaTesis
+        .map(t => t.registro_digital)
+        .filter(reg => AppState.cacheResumenes[reg] === undefined);
+
+    if (faltantes.length === 0) {
+        log('Todos los resúmenes ya estaban en cache.');
+        return;
+    }
+
+    // Procesar en lotes de 200
+    const TAMANO_LOTE = 200;
+    const lotes = [];
+    for (let i = 0; i < faltantes.length; i += TAMANO_LOTE) {
+        lotes.push(faltantes.slice(i, i + TAMANO_LOTE));
+    }
+
+    log(`Hidratando resúmenes: ${faltantes.length} faltantes en ${lotes.length} lote(s).`);
+
+    for (const lote of lotes) {
+        try {
+            const response = await fetch('/api/jurisprudencias/resumenes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ registros: lote })
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            if (!data.success || !data.resumenes) {
+                throw new Error('Respuesta inválida del backend');
+            }
+
+            // Guardar en cache
+            for (const [reg, resumen] of Object.entries(data.resumenes)) {
+                AppState.cacheResumenes[parseInt(reg, 10)] = resumen || '';
+            }
+
+            // Actualizar el DOM de las tarjetas ya renderizadas
+            for (const [reg, resumen] of Object.entries(data.resumenes)) {
+                const tarjeta = DOM.listadoContainer?.querySelector(`[data-registro="${reg}"] .btn-resumen`);
+                if (tarjeta) {
+                    tarjeta.dataset.resumen = resumen || 'Sin resumen';
+                }
+            }
+        } catch (error) {
+            log(`Error hidratando lote: ${error.message}`, 'warn');
+        }
+    }
+
+    log('Hidratación de resúmenes completada.');
+}
+
 
 /* ============================================================================
    6. CAMBIO DE MODO
@@ -202,30 +264,23 @@ function cambiarModo(nuevoModo) {
     log(`Cambiando modo: ${AppState.modoActual} → ${nuevoModo}`);
     AppState.modoActual = nuevoModo;
 
-    // 1. Cambiar el atributo data-modo del body (esto cambia los colores del CSS)
     document.body.setAttribute('data-modo', nuevoModo);
 
-    // 2. Actualizar pestañas activas
     if (DOM.pestanaFiltros) DOM.pestanaFiltros.classList.toggle('activa', nuevoModo === 'filtros');
     if (DOM.pestanaSemantica) DOM.pestanaSemantica.classList.toggle('activa', nuevoModo === 'semantico');
 
-    // 3. Cambiar el mensaje contextual
     if (DOM.mensajeContextual) {
         DOM.mensajeContextual.innerText = nuevoModo === 'filtros'
             ? 'Explora el corpus por tipo, materia y texto.'
             : 'Describe tu consulta en lenguaje natural. La IA buscará por significado.';
     }
 
-    // 4. Mostrar/ocultar cajas
     if (DOM.cajaLocal) DOM.cajaLocal.style.display = nuevoModo === 'filtros' ? 'block' : 'none';
     if (DOM.cajaSemantica) DOM.cajaSemantica.style.display = nuevoModo === 'semantico' ? 'flex' : 'none';
 
-    // 5. Actualizar el listado según el modo
     if (nuevoModo === 'filtros') {
-        // Restaurar el listado local
         ejecutarPodaDeArbol();
     } else {
-        // Mostrar el estado del modo semántico
         if (AppState.resultadosSemanticos.length > 0) {
             AppState.tesisFiltradas = AppState.resultadosSemanticos;
             aplicarFiltrosSobreResultados();
@@ -272,8 +327,7 @@ function ejecutarPodaDeArbol() {
 
         if (busqueda) {
             const rubro = (t.rubro || '').toLowerCase();
-            const resumen = (t.resumen_ia || '').toLowerCase();
-            if (!rubro.includes(busqueda) && !resumen.includes(busqueda)) return false;
+            if (!rubro.includes(busqueda)) return false;
         }
 
         return true;
@@ -292,7 +346,6 @@ function ejecutarPodaDeArbol() {
 async function ejecutarBusquedaSemantica() {
     const consulta = (DOM.consultaSemantica ? DOM.consultaSemantica.value : '').trim();
 
-    // Validaciones
     if (consulta.length < 3) {
         alert('La consulta debe tener al menos 3 caracteres.');
         return;
@@ -305,7 +358,6 @@ async function ejecutarBusquedaSemantica() {
     log(`Búsqueda semántica: "${consulta}"`);
     AppState.consultaSemantica = consulta;
 
-    // Estado de carga
     if (DOM.listadoContainer) {
         DOM.listadoContainer.innerHTML = `
             <div class="estado-cargando">
@@ -325,16 +377,13 @@ async function ejecutarBusquedaSemantica() {
             throw new Error('Respuesta inválida del backend');
         }
 
-        // Guardar resultados
         AppState.resultadosSemanticos = data.tesis;
         log(`${data.tesis.length} resultados semánticos recibidos.`);
 
-        // Descontar búsqueda
         AppState.busquedasRestantes--;
         guardarContador();
         actualizarContador();
 
-        // Aplicar filtros locales sobre los resultados
         aplicarFiltrosSobreResultados();
 
     } catch (error) {
@@ -349,9 +398,6 @@ async function ejecutarBusquedaSemantica() {
     }
 }
 
-/**
- * Aplica los filtros locales (Tipo, Materia) sobre los resultados semánticos.
- */
 function aplicarFiltrosSobreResultados() {
     const tipo = DOM.filtroTipo ? DOM.filtroTipo.value : 'todas';
     const materia = DOM.filtroMateria ? DOM.filtroMateria.value : 'todas';
@@ -373,7 +419,6 @@ function aplicarFiltrosSobreResultados() {
     log(`${filtrados.length} resultados semánticos tras filtros.`);
     actualizarMetricasSobreLista(filtrados);
 
-    // Renderizar con badge de similitud
     renderizarListado(filtrados, { mostrarSimilitud: true, consulta: AppState.consultaSemantica });
 }
 
@@ -402,7 +447,6 @@ function renderizarListado(lista, opciones = {}) {
         return;
     }
 
-    // Encabezado si es búsqueda semántica
     let html = '';
     if (opciones.mostrarSimilitud && opciones.consulta) {
         html += `
@@ -412,17 +456,33 @@ function renderizarListado(lista, opciones = {}) {
         `;
     }
 
-    for (const t of lista) {
+    // 🚦 TOPE DE RENDERIZADO: máximo 300 tarjetas a la vez.
+    // Si la lista es más grande, el usuario debe afinar filtros.
+    const TOPE_RENDER = 300;
+    const listaRecortada = lista.slice(0, TOPE_RENDER);
+    const truncado = lista.length > TOPE_RENDER;
+
+    if (truncado) {
+        html += `
+            <div class="estado-vacio" style="text-align:left; padding: 8px 0; color: #f59e0b; font-size: 12px;">
+                ⚠️ Mostrando ${TOPE_RENDER} de ${lista.length}. Afina los filtros para ver más específicos.
+            </div>
+        `;
+    }
+
+    for (const t of listaRecortada) {
         const claseBorde = t.tipo === 'Jurisprudencia' ? 'jurisprudencia' : 'aislada';
         const materiasStr = formatearMaterias(t.materia);
         const fechaFormateada = formatearFecha(t.fecha_publicacion);
 
-        // Badge de similitud (solo si viene de búsqueda semántica)
         let badgeSimilitud = '';
         if (opciones.mostrarSimilitud && t.similitud !== undefined) {
             const sim = parseFloat(t.similitud).toFixed(2);
             badgeSimilitud = `<div class="badge-similitud">🎯 ${sim}</div>`;
         }
+
+        // Resumen desde cache si ya lo tenemos, si no string vacío
+        const resumenEnCache = AppState.cacheResumenes[t.registro_digital] || '';
 
         html += `
             <div class="tarjeta ${claseBorde}" data-registro="${t.registro_digital}">
@@ -434,7 +494,7 @@ function renderizarListado(lista, opciones = {}) {
                 <div class="tarjeta-rubro">${escapeHtml(t.rubro)}</div>
                 <div class="tarjeta-footer">
                     <span class="btn-resumen"
-                          data-resumen="${escapeHtml(t.resumen_ia || 'Sin resumen')}">
+                          data-resumen="${escapeHtml(resumenEnCache)}">
                         <i class="fas fa-robot"></i> Resumen IA
                     </span>
                     <span>📅 ${escapeHtml(fechaFormateada)}</span>
@@ -444,7 +504,10 @@ function renderizarListado(lista, opciones = {}) {
     }
 
     DOM.listadoContainer.innerHTML = html;
-    log(`${lista.length} tarjetas renderizadas.`);
+    log(`${listaRecortada.length} tarjetas renderizadas.`);
+
+    // 🔥 Hidratar resúmenes en background (solo las visibles, sin bloquear)
+    hidratarResumenes(listaRecortada);
 }
 
 
@@ -503,7 +566,6 @@ function construirTextoDetalle(t) {
    11. INTERACCIÓN
    ============================================================================ */
 
-// Pestañas
 if (DOM.pestanaFiltros) {
     DOM.pestanaFiltros.addEventListener('click', () => cambiarModo('filtros'));
 }
@@ -511,7 +573,6 @@ if (DOM.pestanaSemantica) {
     DOM.pestanaSemantica.addEventListener('click', () => cambiarModo('semantico'));
 }
 
-// Filtros (Tipo, Materia): se aplican según el modo activo
 if (DOM.filtroTipo) {
     DOM.filtroTipo.addEventListener('change', () => {
         if (AppState.modoActual === 'filtros') ejecutarPodaDeArbol();
@@ -525,17 +586,14 @@ if (DOM.filtroMateria) {
     });
 }
 
-// Caja local: filtra en vivo (solo en modo filtros)
 if (DOM.filtroBusqueda) {
     DOM.filtroBusqueda.addEventListener('input', ejecutarPodaDeArbol);
 }
 
-// Botón buscar semántica
 if (DOM.btnBuscarSemantica) {
     DOM.btnBuscarSemantica.addEventListener('click', ejecutarBusquedaSemantica);
 }
 
-// Enter en textarea semántica dispara la búsqueda
 if (DOM.consultaSemantica) {
     DOM.consultaSemantica.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -545,10 +603,23 @@ if (DOM.consultaSemantica) {
     });
 }
 
-// Click en tarjeta: abrir cortina
+// Click en tarjeta: abrir cortina. Click en "Resumen IA": mostrar alerta con el resumen.
 if (DOM.listadoContainer) {
     DOM.listadoContainer.addEventListener('click', (e) => {
-        if (e.target.closest('.btn-resumen')) return;
+        // Caso 1: clic en el botón "Resumen IA"
+        const btnResumen = e.target.closest('.btn-resumen');
+        if (btnResumen) {
+            e.stopPropagation();
+            const resumen = btnResumen.dataset.resumen;
+            if (resumen && resumen.trim() !== '') {
+                alert(`🤖 SÍNTESIS IA:\n\n${resumen}`);
+            } else {
+                alert('⏳ Resumen IA aún no disponible. Espera unos segundos o abre la tesis completa.');
+            }
+            return;
+        }
+
+        // Caso 2: clic en cualquier otra parte de la tarjeta → abrir cortina
         const tarjeta = e.target.closest('[data-registro]');
         if (!tarjeta) return;
         const registro = parseInt(tarjeta.dataset.registro, 10);
@@ -556,7 +627,6 @@ if (DOM.listadoContainer) {
     });
 }
 
-// Cerrar cortina
 if (DOM.btnCerrarCortina) {
     DOM.btnCerrarCortina.addEventListener('click', () => {
         if (DOM.cortinaDetalle) DOM.cortinaDetalle.classList.add('oculta');
@@ -564,7 +634,6 @@ if (DOM.btnCerrarCortina) {
     });
 }
 
-// Copiar tesis
 if (DOM.btnCopiarTexto) {
     DOM.btnCopiarTexto.addEventListener('click', () => {
         const registro = AppState.registroActual;

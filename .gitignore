@@ -10,3 +10,7 @@ __pycache__/
 
 # Salidas o archivos temporales si los hubiera
 output/
+
+# Respaldos de base de datos
+*.dump
+*.sql

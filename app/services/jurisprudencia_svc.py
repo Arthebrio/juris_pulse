@@ -97,15 +97,39 @@ class JurisprudenciaService:
         return resultados
 
     # ------------------------------------------------------------------------
-    # MÉTODO 2: LISTADO LIGERO (para el frontend y la poda de árbol)
+    # MÉTODO 2: LISTADO LIGERO COMPLETO (LEGACY)
     # ------------------------------------------------------------------------
     def obtener_listado_ligero(self) -> List[Dict[str, Any]]:
         """
-        Devuelve el listado ligero de todas las tesis.
-        Delega al motor.
+        Devuelve el listado ligero COMPLETO (incluye resumen_ia).
+        ⚠️ Con 27,000+ tesis pesa ~40 MB. Se conserva por compatibilidad.
+        Para la carga inicial usar obtener_indice().
         """
         logger.info("📥 Solicitando listado ligero al motor...")
         return jurisprudencia_repo.obtener_todas_ligeras()
+
+    # ------------------------------------------------------------------------
+    # MÉTODO 2-BIS: ÍNDICE DEL CORPUS (carga inicial)
+    # ------------------------------------------------------------------------
+    def obtener_indice(self) -> List[Dict[str, Any]]:
+        """
+        Devuelve el índice del corpus (sin resumen_ia).
+        Diseñado para cargarse completo al inicio y alimentar el dashboard
+        y los filtros locales.
+        """
+        logger.info("📥 Solicitando índice del corpus al motor...")
+        return jurisprudencia_repo.obtener_indice()
+
+    # ------------------------------------------------------------------------
+    # MÉTODO 2-TER: RESÚMENES IA POR LOTE
+    # ------------------------------------------------------------------------
+    def obtener_resumenes(self, registros: List[int]) -> Dict[int, str]:
+        """
+        Devuelve los resumen_ia SOLO de los registros solicitados.
+        Se usa desde el frontend para hidratar las tarjetas visibles.
+        """
+        logger.info(f"📥 Solicitando resúmenes IA para {len(registros)} registros...")
+        return jurisprudencia_repo.obtener_resumenes(registros)
 
     # ------------------------------------------------------------------------
     # MÉTODO 3: DETALLE DE UNA TESIS
