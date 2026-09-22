@@ -117,6 +117,82 @@ async def obtener_resumenes(peticion: PeticionResumenes):
         logger.error(f"❌ Error en /resumenes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============================================================================
+# ENDPOINT 2-TER: BÚSQUEDA EXACTA (literal)
+# ============================================================================
+@router.get("/buscar/exacta")
+async def buscar_exacta(
+    q: str,
+    tipo: str = None,
+    materia: str = None,
+    offset: int = 0,
+    limit: int = 100,
+):
+    """
+    Búsqueda literal en rubro y resumen_ia (ILIKE, ignora mayúsculas).
+    NO tolera errores ortográficos. NO gasta tokens.
+
+    Params:
+      - q:       texto a buscar (obligatorio)
+      - tipo:    'Jurisprudencia' | 'Aislada' (opcional)
+      - materia: 'Penal' | 'Civil' | ... (opcional)
+      - offset:  desde qué fila empezar (default 0)
+      - limit:   cuántas devolver (default 100, máx 200)
+    """
+    try:
+        logger.info(f"🌐 GET /buscar/exacta?q={q}&offset={offset}&limit={limit}")
+
+        if not q or len(q.strip()) < 2:
+            raise HTTPException(
+                status_code=400,
+                detail="La consulta debe tener al menos 2 caracteres."
+            )
+
+        # Topes de seguridad
+        limit = min(max(limit, 1), 200)
+        offset = max(offset, 0)
+
+        resultado = jurisprudencia_service.buscar_exacta(
+            consulta=q.strip(),
+            tipo=tipo,
+            materia=materia,
+            offset=offset,
+            limit=limit,
+        )
+        return {
+            "success": True,
+            "total": resultado["total"],
+            "resultados": resultado["resultados"],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error en /buscar/exacta: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# ENDPOINT 2-BIS: ESTADÍSTICAS DEL CORPUS
+# ============================================================================
+@router.get("/stats")
+async def obtener_stats():
+    """
+    Devuelve estadísticas del corpus: total de tesis y rango de fechas.
+
+    El frontend lo usa para el dashboard:
+      📊 27,575 tesis
+      📅 Del 13 de mayo de 2013 al 11 de septiembre de 2026
+    """
+    try:
+        logger.info("🌐 GET /stats")
+        stats = jurisprudencia_service.obtener_stats()
+        return {
+            "success": True,
+            "stats": stats
+        }
+    except Exception as e:
+        logger.error(f"❌ Error en /stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # ============================================================================
 # ENDPOINT 3: DETALLE DE UNA TESIS

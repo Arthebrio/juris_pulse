@@ -95,3 +95,36 @@ Tocayo, este README es más que documentación. Es **la memoria del proyecto**. 
 3. ¿O quieres explorar el siguiente punto del backlog?
 
 **Tú decides, tocayo.** ☕️🧠🚗
+
+📋 Deuda técnica apuntada
+
+    □
+
+    Reemplazar 1900-01-01 por NULL en el extractor (futuras cargas).
+    □
+
+    2025258 — investigar por qué no carga.
+    □
+
+    165034 — borrar (no existe, colado en auditoría).
+    □
+
+    Telemetría formal (cuando haya ~50 usuarios).
+    □
+
+    Log ligero de búsquedas semánticas (2-3 líneas).
+    □
+
+    Migración a Supabase (cuando decidas).
+    □
+
+    Reducción de dimensiones de embeddings (opcional, futuro).
+    □
+
+    Fase 7 del rediseño: calibración de umbrales de similitud.
+
+   📋 Deuda técnica apuntada
+
+    □
+
+    Badge "Coincide en resumen IA" en búsqueda exacta (cuando el match no está en rubro). 

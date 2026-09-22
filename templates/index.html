@@ -1,123 +1,264 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-tema="oscuro">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>JURIS_PULSE · Consulta Quirúrgica</title>
 
-    <!-- Font Awesome (iconos) -->
+    <!-- ==================================================================
+         [BLOQUE 1] LIBRERÍAS EXTERNAS
+         Font Awesome para los íconos.
+         ================================================================== -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
-    <!-- CSS propio (ruta absoluta) -->
+    <!-- ==================================================================
+         [BLOQUE 2] CSS PROPIO
+         ================================================================== -->
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
-<body data-modo="filtros">
+<body data-modo="explorar">
 
     <!-- ==================================================================
-         ENCABEZADO
+         [BLOQUE 3] HEADER FIJO
+         Contiene: logo, pestañas, hamburguesa, toggle de tema.
+         Tiene dos estados: expandido y compacto (al hacer scroll).
          ================================================================== -->
-    <header>
-        <h1 class="logo">
-            <span>JURIS</span><span class="pulse">_PULSE</span>
-        </h1>
+    <header id="header" class="header">
+        <div class="header-fila">
+
+            <!-- [3.1] Botón hamburguesa (abre el drawer) -->
+            <button id="btnHamburguesa" class="btn-icono" aria-label="Menú">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <!-- [3.2] Logo -->
+            <div class="logo" id="logo">
+                <span class="logo-texto">JURIS</span><span class="logo-pulse">_PULSE</span>
+                <span class="logo-compacto">JP</span>
+            </div>
+
+            <!-- [3.3] Toggle de tema (claro / oscuro) -->
+            <button id="btnTema" class="btn-icono" aria-label="Cambiar tema">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+
+        <!-- [3.4] Pestañas de modo (Explorar / Preguntar / Exacta) -->
+        <nav class="pestanas" role="tablist">
+            <button class="pestana activa" id="pestanaExplorar" data-modo="explorar" role="tab">
+                <i class="fas fa-compass"></i> Explorar
+            </button>
+            <button class="pestana" id="pestanaPreguntar" data-modo="preguntar" role="tab">
+                <i class="fas fa-brain"></i> Preguntar
+            </button>
+            <button class="pestana" id="pestanaExacta" data-modo="exacta" role="tab">
+                <i class="fas fa-quote-right"></i> Exacta
+            </button>
+        </nav>
     </header>
 
     <!-- ==================================================================
-         CONTENEDOR PRINCIPAL
+         [BLOQUE 4] CONTENEDOR PRINCIPAL
+         Aquí vive el contenido que cambia según la pestaña activa.
          ================================================================== -->
-    <div class="contenedor">
+    <main class="contenedor">
 
-        <!-- ---------- PESTAÑAS DE MODO ---------- -->
-        <div class="pestanas">
-            <button class="pestana activa" id="pestanaFiltros" data-modo="filtros">
-                <i class="fas fa-filter"></i> Filtros
-            </button>
-            <button class="pestana" id="pestanaSemantica" data-modo="semantico">
-                <i class="fas fa-brain"></i> Semántica
-            </button>
+        <!-- ==================================================================
+             [BLOQUE 5] DASHBOARD (visible en las 3 pestañas)
+             Muestra: total de tesis visibles + rango exacto del corpus.
+             ================================================================== -->
+        <div class="dashboard" id="dashboard">
+            <div class="dashboard-total">
+                <span class="dashboard-numero" id="dashTotal">...</span>
+                <span class="dashboard-label">tesis</span>
+            </div>
+            <div class="dashboard-fechas">
+                <i class="far fa-calendar"></i>
+                <span id="dashRango">Cargando...</span>
+            </div>
         </div>
 
-        <!-- ---------- MENSAJE CONTEXTUAL ---------- -->
-        <div class="mensaje-contextual" id="mensajeContextual">
-            Explora el corpus por tipo, materia y texto.
-        </div>
+        <!-- ==================================================================
+             [BLOQUE 6] PESTAÑA: EXPLORAR
+             Solo dos filtros. Sin caja de texto.
+             ================================================================== -->
+        <section class="panel" id="panelExplorar">
 
-        <!-- ---------- FILTROS (SIEMPRE VISIBLES) ---------- -->
-        <div class="grid-filtros">
-            <select id="filtroTipo" class="selector">
-                <option value="todas">📋 Todas las Tesis</option>
-                <option value="Jurisprudencia">⚖️ Jurisprudencia</option>
-                <option value="Aislada">📄 Aislada</option>
-            </select>
+            <!-- [6.1] Filtros -->
+            <div class="grid-filtros">
+                <select id="explorarTipo" class="selector">
+                    <option value="todas">📋 Todas las Tesis</option>
+                    <option value="Jurisprudencia">⚖️ Jurisprudencia</option>
+                    <option value="Aislada">📄 Aislada</option>
+                </select>
 
-            <select id="filtroMateria" class="selector">
-                <option value="todas">📚 Materia: Todas</option>
-                <option value="Penal">Penal</option>
-                <option value="Civil">Civil</option>
-                <option value="Administrativa">Administrativa</option>
-                <option value="Constitucional">Constitucional</option>
-                <option value="Laboral">Laboral</option>
-                <option value="Común">Común</option>
-            </select>
-        </div>
+                <select id="explorarMateria" class="selector">
+                    <option value="todas">📚 Todas las Materias</option>
+                    <option value="Penal">Penal</option>
+                    <option value="Civil">Civil</option>
+                    <option value="Administrativa">Administrativa</option>
+                    <option value="Constitucional">Constitucional</option>
+                    <option value="Laboral">Laboral</option>
+                    <option value="Común">Común</option>
+                </select>
+            </div>
+        </section>
 
-        <!-- ---------- CAJA DE BÚSQUEDA LOCAL (MODO FILTROS) ---------- -->
-        <div class="caja-busqueda" id="cajaLocal">
-            <i class="fas fa-search icono-buscar"></i>
-            <input
-                type="text"
-                id="filtroBusqueda"
-                placeholder="Buscar por rubro o resumen..."
-            >
-        </div>
+        <!-- ==================================================================
+             [BLOQUE 7] PESTAÑA: PREGUNTAR
+             Caja grande de lenguaje natural. Filtros aparecen tras búsqueda.
+             ================================================================== -->
+        <section class="panel" id="panelPreguntar" style="display:none;">
 
-        <!-- ---------- CAJA SEMÁNTICA (MODO SEMÁNTICO) ---------- -->
-        <div class="caja-semantica" id="cajaSemantica" style="display:none;">
-            <textarea
-                id="consultaSemantica"
-                placeholder="Ej: ¿cómo impugnar un acto de autoridad que viola derechos humanos?"
-            ></textarea>
-            <div class="boton-semantica">
-                <button class="btn-buscar-semantica" id="btnBuscarSemantica">
-                    <i class="fas fa-brain"></i> Buscar por significado
+            <!-- [7.1] Caja de consulta -->
+            <div class="caja-semantica">
+                <label class="caja-label">
+                    <i class="fas fa-brain"></i> ¿Qué necesitas saber?
+                </label>
+                <textarea
+                    id="preguntarTexto"
+                    placeholder="Ej: ¿cómo impugnar un acto de autoridad que viola derechos humanos?"
+                ></textarea>
+                <button class="btn-primario" id="btnPreguntar">
+                    <i class="fas fa-search"></i> Buscar por significado
                 </button>
-                <div class="contador-busquedas" id="contadorBusquedas">
-                    20/20
-                </div>
             </div>
-        </div>
 
-        <!-- ---------- MÉTRICAS ---------- -->
-        <div class="dashboard-metricas">
-            <div class="dashboard-titulo">📊 MÉTRICAS DE FILTRADO</div>
-            <div class="grid-metricas">
-                <div class="metrica">
-                    <div class="metrica-label">Restantes</div>
-                    <div class="metrica-valor dorado" id="relojRestantes">...</div>
-                </div>
-                <div class="metrica">
-                    <div class="metrica-label">Juris</div>
-                    <div class="metrica-valor" id="relojJuris">...</div>
-                </div>
-                <div class="metrica">
-                    <div class="metrica-label">Aisladas</div>
-                    <div class="metrica-valor" id="relojAisladas">...</div>
-                </div>
+            <!-- [7.2] Filtros (ocultos al inicio, aparecen tras búsqueda) -->
+            <div class="grid-filtros filtros-post" id="preguntarFiltros" style="display:none;">
+                <select id="preguntarTipo" class="selector">
+                    <option value="todas">📋 Todos los Tipos</option>
+                    <option value="Jurisprudencia">⚖️ Jurisprudencia</option>
+                    <option value="Aislada">📄 Aislada</option>
+                </select>
+
+                <select id="preguntarMateria" class="selector">
+                    <option value="todas">📚 Todas las Materias</option>
+                    <option value="Penal">Penal</option>
+                    <option value="Civil">Civil</option>
+                    <option value="Administrativa">Administrativa</option>
+                    <option value="Constitucional">Constitucional</option>
+                    <option value="Laboral">Laboral</option>
+                    <option value="Común">Común</option>
+                </select>
             </div>
-        </div>
 
-        <!-- ---------- LISTADO DE TESIS ---------- -->
+            <!-- [7.3] Mensaje educativo (visible al inicio) -->
+            <div class="mensaje-ayuda" id="preguntarAyuda">
+                💡 Los filtros aparecerán cuando tengas resultados.
+            </div>
+        </section>
+
+        <!-- ==================================================================
+             [BLOQUE 8] PESTAÑA: EXACTA
+             Caja de texto literal. Filtros aparecen tras búsqueda.
+             ================================================================== -->
+        <section class="panel" id="panelExacta" style="display:none;">
+
+            <!-- [8.1] Caja de búsqueda literal -->
+            <div class="caja-semantica">
+                <label class="caja-label">
+                    <i class="fas fa-quote-right"></i> Búsqueda literal
+                </label>
+                <input
+                    type="text"
+                    id="exactaTexto"
+                    placeholder="Ej: amparo indirecto"
+                    class="input-texto"
+                >
+                <button class="btn-primario" id="btnExacta">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+
+            <!-- [8.2] Filtros (ocultos al inicio) -->
+            <div class="grid-filtros filtros-post" id="exactaFiltros" style="display:none;">
+                <select id="exactaTipo" class="selector">
+                    <option value="todas">📋 Todos los Tipos</option>
+                    <option value="Jurisprudencia">⚖️ Jurisprudencia</option>
+                    <option value="Aislada">📄 Aislada</option>
+                </select>
+
+                <select id="exactaMateria" class="selector">
+                    <option value="todas">📚 Todas las Materias</option>
+                    <option value="Penal">Penal</option>
+                    <option value="Civil">Civil</option>
+                    <option value="Administrativa">Administrativa</option>
+                    <option value="Constitucional">Constitucional</option>
+                    <option value="Laboral">Laboral</option>
+                    <option value="Común">Común</option>
+                </select>
+            </div>
+
+            <!-- [8.3] Mensaje educativo (visible al inicio) -->
+            <div class="mensaje-ayuda" id="exactaAyuda">
+                💡 Busca la frase exacta en rubro y resumen IA. No acepta errores ortográficos.
+            </div>
+        </section>
+
+        <!-- ==================================================================
+             [BLOQUE 9] LISTADO DE RESULTADOS
+             Aquí se renderizan las tarjetas (compartido por las 3 pestañas).
+             ================================================================== -->
         <div class="listado" id="listadoContainer">
             <div class="estado-cargando">
-                <i class="fas fa-circle-notch fa-spin" style="color:#f59e0b;"></i>
+                <i class="fas fa-circle-notch fa-spin"></i>
                 Conectando al backend...
             </div>
         </div>
 
-    </div>
+        <!-- ==================================================================
+             [BLOQUE 10] SPINNER DE CARGA DEL SIGUIENTE LOTE
+             Solo aparece cuando el usuario llega al final del scroll.
+             ================================================================== -->
+        <div class="spinner-lote" id="spinnerLote" style="display:none;">
+            <i class="fas fa-circle-notch fa-spin"></i>
+            Cargando más tesis...
+        </div>
+
+    </main>
 
     <!-- ==================================================================
-         CORTINA DE DETALLE
+         [BLOQUE 11] DRAWER (menú lateral)
+         Se abre al tocar la hamburguesa. Contenido placeholder por ahora.
+         ================================================================== -->
+    <aside class="drawer" id="drawer">
+        <div class="drawer-header">
+            <span>Menú</span>
+            <button id="btnCerrarDrawer" class="btn-icono" aria-label="Cerrar menú">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <nav class="drawer-nav">
+            <a href="#" class="drawer-item">
+                <i class="fas fa-info-circle"></i> Acerca de JURIS_PULSE
+            </a>
+            <a href="#" class="drawer-item">
+                <i class="fas fa-book"></i> Guía de uso
+            </a>
+            <a href="#" class="drawer-item">
+                <i class="fas fa-keyboard"></i> Atajos de teclado
+            </a>
+            <a href="#" class="drawer-item">
+                <i class="fas fa-history"></i> Novedades
+            </a>
+            <a href="#" class="drawer-item">
+                <i class="fas fa-envelope"></i> Contacto
+            </a>
+        </nav>
+
+        <div class="drawer-footer">
+            <small>Versión 3.1 · 2026</small>
+        </div>
+    </aside>
+
+    <!-- Capa oscura detrás del drawer cuando está abierto -->
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+
+    <!-- ==================================================================
+         [BLOQUE 12] CORTINA DE DETALLE
+         Se abre al hacer clic en una tarjeta.
          ================================================================== -->
     <div class="cortina oculta" id="cortinaDetalle">
         <div class="cortina-contenido">
@@ -151,13 +292,15 @@
     </div>
 
     <!-- ==================================================================
-         FOOTER
+         [BLOQUE 13] FOOTER
          ================================================================== -->
     <footer>
         © 2026 JURIS_PULSE · Consulta Quirúrgica
     </footer>
 
-    <!-- SCRIPT (ruta absoluta) -->
+    <!-- ==================================================================
+         [BLOQUE 14] SCRIPT PRINCIPAL
+         ================================================================== -->
     <script src="/static/js/script.js" defer></script>
 
 </body>

@@ -121,6 +121,45 @@ class JurisprudenciaService:
         return jurisprudencia_repo.obtener_indice()
 
     # ------------------------------------------------------------------------
+    # MÉTODO 2-QUINQUIES: BÚSQUEDA EXACTA (literal)
+    # ------------------------------------------------------------------------
+    def buscar_exacta(
+        self,
+        consulta: str,
+        tipo: Optional[str] = None,
+        materia: Optional[str] = None,
+        offset: int = 0,
+        limit: int = 100,
+    ) -> Dict[str, Any]:
+        """
+        Búsqueda literal en rubro y resumen_ia.
+        Delega al motor.
+        """
+        logger.info(f"🔤 Solicitando búsqueda exacta al motor: '{consulta}'")
+        return jurisprudencia_repo.buscar_exacta(
+            consulta=consulta,
+            tipo=tipo,
+            materia=materia,
+            offset=offset,
+            limit=limit,
+        )
+
+
+    # ------------------------------------------------------------------------
+    # MÉTODO 2-QUATER: ESTADÍSTICAS DEL CORPUS
+    # ------------------------------------------------------------------------
+    def obtener_stats(self) -> Dict[str, Any]:
+        """
+        Devuelve estadísticas del corpus: total de tesis y rango de fechas.
+
+        Útil para el dashboard: el usuario ve cuántas tesis hay y de qué
+        fechas a qué fechas va el corpus.
+        """
+        logger.info("📥 Solicitando estadísticas del corpus al motor...")
+        return jurisprudencia_repo.obtener_stats()
+
+
+    # ------------------------------------------------------------------------
     # MÉTODO 2-TER: RESÚMENES IA POR LOTE
     # ------------------------------------------------------------------------
     def obtener_resumenes(self, registros: List[int]) -> Dict[int, str]:

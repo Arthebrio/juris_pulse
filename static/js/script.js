@@ -1,19 +1,25 @@
 /* ============================================================================
-   🚗 JURIS_PULSE - SCRIPT PRINCIPAL (VERSIÓN DUAL + CARGA POR LOTES)
+   🚗 JURIS_PULSE - SCRIPT PRINCIPAL v3.1
    ============================================================================
    Bloques:
-     1. Estado global
-     2. Referencias al DOM
-     3. Utilidades
-     4. Persistencia (contador)
-     5. Carga inicial (índice + hidratación de resúmenes)
-     6. Cambio de modo
-     7. Poda de árbol (modo filtros)
-     8. Búsqueda semántica (modo semántico)
-     9. Renderizado
-    10. Cortina de detalle
-    11. Interacción
-    12. Arranque
+     1.  Estado global
+     2.  Referencias al DOM
+     3.  Utilidades
+     4.  Tema (claro / oscuro)
+     5.  Drawer (menú lateral)
+     6.  Header (expandido / compacto al scroll)
+     7.  Pestañas (Explorar / Preguntar / Exacta)
+     8.  Dashboard (total + fechas)
+     9.  Carga inicial del índice
+    10.  Scroll infinito (paginación)
+    11.  Hidratación de resúmenes IA
+    12.  Renderizado de tarjetas
+    13.  Pestaña EXPLORAR
+    14.  Pestaña PREGUNTAR
+    15.  Pestaña EXACTA
+    16.  Cortina de detalle
+    17.  Interacción general
+    18.  Arranque
    ============================================================================ */
 
 
@@ -21,31 +27,37 @@
    1. ESTADO GLOBAL
    ============================================================================ */
 const AppState = {
-    // Datos base (índice completo del corpus, SIN resumen_ia)
+    // Corpus completo (índice ligero, sin resumen_ia)
     todasLasTesis: [],
 
-    // Resultado que se muestra en el listado
-    tesisFiltradas: [],
+    // Datos del dashboard
+    stats: { total: 0, fecha_min: null, fecha_max: null, fecha_max_texto: null },
 
     // Modo activo
-    modoActual: 'filtros',       // 'filtros' | 'semantico'
+    modoActual: 'explorar',       // 'explorar' | 'preguntar' | 'exacta'
 
-    // Estado del modo FILTROS
-    consultaLocal: '',
+    // --- Estado de EXPLORAR ---
+    explorarFiltradas: [],        // corpus filtrado por tipo+materia
+    explorarVisibles: 0,          // cuántas tarjetas se están mostrando
 
-    // Estado del modo SEMÁNTICO
-    consultaSemantica: '',
-    resultadosSemanticos: [],
+    // --- Estado de PREGUNTAR ---
+    preguntarConsulta: '',
+    preguntarResultados: [],      // resultados semánticos crudos del backend
+    preguntarFiltrados: [],       // después de filtros locales
+    preguntarPaginaActual: 1,     // no usado (los semánticos se traen todos de una)
 
-    // Persistencia
-    busquedasRestantes: 20,
-    maxBusquedas: 20,
+    // --- Estado de EXACTA ---
+    exactaConsulta: '',
+    exactaResultados: [],
+    exactaTotal: 0,
+    exactaOffset: 0,
+    exactaLoteSize: 100,
+
+    // Cache de resúmenes ya hidratados
+    cacheResumenes: {},
 
     // Cortina
-    registroActual: null,
-
-    // Cache de resúmenes ya hidratados (evita pedirlos dos veces)
-    cacheResumenes: {}
+    registroActual: null
 };
 
 
@@ -53,28 +65,56 @@ const AppState = {
    2. REFERENCIAS AL DOM
    ============================================================================ */
 const DOM = {
-    pestanaFiltros: document.getElementById('pestanaFiltros'),
-    pestanaSemantica: document.getElementById('pestanaSemantica'),
+    // Header
+    header: document.getElementById('header'),
+    logo: document.getElementById('logo'),
+    btnHamburguesa: document.getElementById('btnHamburguesa'),
+    btnTema: document.getElementById('btnTema'),
 
-    mensajeContextual: document.getElementById('mensajeContextual'),
+    // Pestañas
+    pestanaExplorar: document.getElementById('pestanaExplorar'),
+    pestanaPreguntar: document.getElementById('pestanaPreguntar'),
+    pestanaExacta: document.getElementById('pestanaExacta'),
 
-    filtroTipo: document.getElementById('filtroTipo'),
-    filtroMateria: document.getElementById('filtroMateria'),
+    // Dashboard
+    dashTotal: document.getElementById('dashTotal'),
+    dashRango: document.getElementById('dashRango'),
 
-    cajaLocal: document.getElementById('cajaLocal'),
-    filtroBusqueda: document.getElementById('filtroBusqueda'),
+    // Paneles
+    panelExplorar: document.getElementById('panelExplorar'),
+    panelPreguntar: document.getElementById('panelPreguntar'),
+    panelExacta: document.getElementById('panelExacta'),
 
-    cajaSemantica: document.getElementById('cajaSemantica'),
-    consultaSemantica: document.getElementById('consultaSemantica'),
-    btnBuscarSemantica: document.getElementById('btnBuscarSemantica'),
-    contadorBusquedas: document.getElementById('contadorBusquedas'),
+    // Explorar
+    explorarTipo: document.getElementById('explorarTipo'),
+    explorarMateria: document.getElementById('explorarMateria'),
 
-    relojRestantes: document.getElementById('relojRestantes'),
-    relojJuris: document.getElementById('relojJuris'),
-    relojAisladas: document.getElementById('relojAisladas'),
+    // Preguntar
+    preguntarTexto: document.getElementById('preguntarTexto'),
+    btnPreguntar: document.getElementById('btnPreguntar'),
+    preguntarFiltros: document.getElementById('preguntarFiltros'),
+    preguntarTipo: document.getElementById('preguntarTipo'),
+    preguntarMateria: document.getElementById('preguntarMateria'),
+    preguntarAyuda: document.getElementById('preguntarAyuda'),
 
+    // Exacta
+    exactaTexto: document.getElementById('exactaTexto'),
+    btnExacta: document.getElementById('btnExacta'),
+    exactaFiltros: document.getElementById('exactaFiltros'),
+    exactaTipo: document.getElementById('exactaTipo'),
+    exactaMateria: document.getElementById('exactaMateria'),
+    exactaAyuda: document.getElementById('exactaAyuda'),
+
+    // Listado
     listadoContainer: document.getElementById('listadoContainer'),
+    spinnerLote: document.getElementById('spinnerLote'),
 
+    // Drawer
+    drawer: document.getElementById('drawer'),
+    drawerOverlay: document.getElementById('drawerOverlay'),
+    btnCerrarDrawer: document.getElementById('btnCerrarDrawer'),
+
+    // Cortina
     cortinaDetalle: document.getElementById('cortinaDetalle'),
     detBadgeTipo: document.getElementById('detBadgeTipo'),
     detBadgeMateria: document.getElementById('detBadgeMateria'),
@@ -97,10 +137,10 @@ function escapeHtml(texto) {
     return String(texto).replace(/[&<>"']/g, m => map[m]);
 }
 
-function formatearFecha(fechaStr) {
+function formatearFechaLarga(fechaStr) {
     if (!fechaStr) return 'Sin fecha';
     try {
-        const fecha = new Date(fechaStr);
+        const fecha = new Date(fechaStr + 'T12:00:00');
         if (isNaN(fecha)) return fechaStr;
         return fecha.toLocaleDateString('es-ES', {
             day: 'numeric', month: 'long', year: 'numeric'
@@ -123,63 +163,193 @@ function log(mensaje, tipo = 'info') {
 
 
 /* ============================================================================
-   4. PERSISTENCIA (CONTADOR DE BÚSQUEDAS)
+   4. TEMA (CLARO / OSCURO)
    ============================================================================ */
+const TEMA_KEY = 'juris_pulse_tema';
 
-const STORAGE_KEY = 'juris_pulse_busquedas_semanticas';
-
-function cargarContador() {
+function cargarTema() {
     try {
-        const guardado = localStorage.getItem(STORAGE_KEY);
-        if (guardado !== null) {
-            AppState.busquedasRestantes = parseInt(guardado, 10);
+        const guardado = localStorage.getItem(TEMA_KEY);
+        if (guardado === 'claro' || guardado === 'oscuro') {
+            aplicarTema(guardado);
+            return;
         }
+        // Si no hay preferencia guardada, usar la del SO
+        const prefiereClaro = window.matchMedia('(prefers-color-scheme: light)').matches;
+        aplicarTema(prefiereClaro ? 'claro' : 'oscuro');
     } catch (e) {
-        log(`No se pudo leer localStorage: ${e.message}`, 'warn');
+        log(`No se pudo leer el tema: ${e.message}`, 'warn');
+        aplicarTema('oscuro');
     }
-    actualizarContador();
 }
 
-function guardarContador() {
+function aplicarTema(tema) {
+    document.documentElement.setAttribute('data-tema', tema);
+    if (DOM.btnTema) {
+        DOM.btnTema.innerHTML = tema === 'oscuro'
+            ? '<i class="fas fa-moon"></i>'
+            : '<i class="fas fa-sun"></i>';
+    }
     try {
-        localStorage.setItem(STORAGE_KEY, AppState.busquedasRestantes);
+        localStorage.setItem(TEMA_KEY, tema);
     } catch (e) {
-        log(`No se pudo guardar en localStorage: ${e.message}`, 'warn');
+        log(`No se pudo guardar el tema: ${e.message}`, 'warn');
     }
 }
 
-function actualizarContador() {
-    if (!DOM.contadorBusquedas) return;
-    DOM.contadorBusquedas.innerText = `${AppState.busquedasRestantes}/${AppState.maxBusquedas}`;
-    DOM.contadorBusquedas.classList.toggle('agotado', AppState.busquedasRestantes <= 0);
-    if (DOM.btnBuscarSemantica) {
-        DOM.btnBuscarSemantica.disabled = AppState.busquedasRestantes <= 0;
-    }
+function alternarTema() {
+    const actual = document.documentElement.getAttribute('data-tema') || 'oscuro';
+    const nuevo = actual === 'oscuro' ? 'claro' : 'oscuro';
+    aplicarTema(nuevo);
+    log(`Tema cambiado a: ${nuevo}`);
 }
 
 
 /* ============================================================================
-   5. CARGA INICIAL (ÍNDICE + HIDRATACIÓN DE RESÚMENES)
+   5. DRAWER (MENÚ LATERAL)
    ============================================================================ */
 
-async function cargarTesisDelBackend() {
-    log('Cargando índice del corpus desde el backend...');
+function abrirDrawer() {
+    if (DOM.drawer) DOM.drawer.classList.add('abierto');
+    if (DOM.drawerOverlay) DOM.drawerOverlay.classList.add('visible');
+}
+
+function cerrarDrawer() {
+    if (DOM.drawer) DOM.drawer.classList.remove('abierto');
+    if (DOM.drawerOverlay) DOM.drawerOverlay.classList.remove('visible');
+}
+
+
+/* ============================================================================
+   6. HEADER (EXPANDIDO / COMPACTO AL SCROLL)
+   ============================================================================ */
+let ultimoScrollY = 0;
+
+function manejarScrollHeader() {
+    const y = window.scrollY;
+
+    if (y > 100 && y > ultimoScrollY) {
+        // Scroll hacia abajo → compactar
+        if (DOM.header) DOM.header.classList.add('compacto');
+    } else if (y < ultimoScrollY || y < 50) {
+        // Scroll hacia arriba → expandir
+        if (DOM.header) DOM.header.classList.remove('compacto');
+    }
+
+    ultimoScrollY = y;
+
+    // Detectar si el usuario está cerca del final → cargar siguiente lote
+    detectarScrollInfinito();
+}
+
+
+/* ============================================================================
+   7. PESTAÑAS (EXPLORAR / PREGUNTAR / EXACTA)
+   ============================================================================ */
+
+function cambiarPestana(nuevoModo) {
+    if (nuevoModo === AppState.modoActual) return;
+
+    log(`Cambiando pestaña: ${AppState.modoActual} → ${nuevoModo}`);
+    AppState.modoActual = nuevoModo;
+
+    // Cambiar el atributo del body (afecta el color de acento)
+    document.body.setAttribute('data-modo', nuevoModo);
+
+    // Actualizar clases activas
+    [DOM.pestanaExplorar, DOM.pestanaPreguntar, DOM.pestanaExacta].forEach(p => {
+        if (p) p.classList.remove('activa');
+    });
+    const activa = {
+        explorar: DOM.pestanaExplorar,
+        preguntar: DOM.pestanaPreguntar,
+        exacta: DOM.pestanaExacta
+    }[nuevoModo];
+    if (activa) activa.classList.add('activa');
+
+    // Mostrar/ocultar paneles
+    if (DOM.panelExplorar) DOM.panelExplorar.style.display = nuevoModo === 'explorar' ? 'flex' : 'none';
+    if (DOM.panelPreguntar) DOM.panelPreguntar.style.display = nuevoModo === 'preguntar' ? 'flex' : 'none';
+    if (DOM.panelExacta) DOM.panelExacta.style.display = nuevoModo === 'exacta' ? 'flex' : 'none';
+
+    // Restaurar la vista del listado según la pestaña
+    if (nuevoModo === 'explorar') {
+        renderizarExplorar();
+    } else if (nuevoModo === 'preguntar') {
+        if (AppState.preguntarResultados.length > 0) {
+            aplicarFiltrosPreguntar();
+        } else {
+            mostrarEstadoInicial('preguntar');
+        }
+    } else if (nuevoModo === 'exacta') {
+        if (AppState.exactaResultados.length > 0) {
+            aplicarFiltrosExacta();
+        } else {
+            mostrarEstadoInicial('exacta');
+        }
+    }
+
+    // Hash en URL para deep linking
+    window.location.hash = nuevoModo;
+}
+
+function mostrarEstadoInicial(modo) {
+    if (!DOM.listadoContainer) return;
+    const mensajes = {
+        explorar: '📋 Aplica filtros para navegar el corpus.',
+        preguntar: '🧠 Escribe una consulta y presiona "Buscar por significado".',
+        exacta: '🔤 Escribe una frase y presiona "Buscar".'
+    };
+    DOM.listadoContainer.innerHTML = `
+        <div class="estado-vacio">${mensajes[modo] || ''}</div>
+    `;
+}
+
+
+/* ============================================================================
+   8. DASHBOARD (TOTAL + FECHAS)
+   ============================================================================ */
+
+function actualizarDashboard(total) {
+    if (DOM.dashTotal) DOM.dashTotal.innerText = total.toLocaleString('es-MX');
+}
+
+function pintarRangoFechas() {
+    if (!DOM.dashRango) return;
+    const s = AppState.stats;
+    if (!s.fecha_min || !s.fecha_max) {
+        DOM.dashRango.innerText = 'Sin datos';
+        return;
+    }
+    const min = formatearFechaLarga(s.fecha_min);
+    const max = formatearFechaLarga(s.fecha_max);
+    DOM.dashRango.innerText = `Del ${min} al ${max}`;
+}
+
+
+/* ============================================================================
+   9. CARGA INICIAL DEL ÍNDICE
+   ============================================================================ */
+
+async function cargarIndice() {
+    log('Cargando índice del corpus...');
     try {
-        // ✅ CAMBIO CLAVE: /indice en vez de /todas
-        // Trae todo el corpus SIN resumen_ia (~11 MB vs ~40 MB).
         const response = await fetch('/api/jurisprudencias/indice');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const data = await response.json();
-        if (!data.success || !data.tesis) {
-            throw new Error('Respuesta inválida del backend');
-        }
+        if (!data.success || !data.tesis) throw new Error('Respuesta inválida del backend');
 
         AppState.todasLasTesis = data.tesis;
         log(`Índice cargado: ${AppState.todasLasTesis.length} tesis.`);
-        ejecutarPodaDeArbol();
+
+        // Dashboard
+        actualizarDashboard(AppState.todasLasTesis.length);
+
+        // Renderizar Explorar
+        renderizarExplorar();
     } catch (error) {
-        log(`Error al cargar tesis: ${error.message}`, 'error');
+        log(`Error al cargar índice: ${error.message}`, 'error');
         if (DOM.listadoContainer) {
             DOM.listadoContainer.innerHTML = `
                 <div class="estado-error">
@@ -190,34 +360,71 @@ async function cargarTesisDelBackend() {
     }
 }
 
-/**
- * Hidrata los resúmenes IA de un conjunto de registros.
- * Pide al backend solo los resúmenes faltantes (los que no están en cache)
- * y actualiza el data-resumen de cada tarjeta en el DOM.
- *
- * Estrategia: máx 200 registros por petición.
- */
+async function cargarStats() {
+    try {
+        const response = await fetch('/api/jurisprudencias/stats');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data.success && data.stats) {
+            AppState.stats = data.stats;
+            pintarRangoFechas();
+        }
+    } catch (error) {
+        log(`Error al cargar stats: ${error.message}`, 'warn');
+    }
+}
+
+
+/* ============================================================================
+   10. SCROLL INFINITO (PAGINACIÓN)
+   ============================================================================ */
+let cargandoLote = false;
+
+function detectarScrollInfinito() {
+    if (cargandoLote) return;
+    if (!DOM.listadoContainer) return;
+
+    const scrollY = window.scrollY + window.innerHeight;
+    const alturaTotal = document.body.offsetHeight;
+
+    // Si estamos a 600px del final, dispara la carga del siguiente lote
+    if (alturaTotal - scrollY < 600) {
+        if (AppState.modoActual === 'explorar') {
+            cargarMasExplorar();
+        } else if (AppState.modoActual === 'exacta') {
+            cargarMasExacta();
+        }
+        // Preguntar no usa scroll infinito (solo trae top N)
+    }
+}
+
+function mostrarSpinnerLote(visible) {
+    if (DOM.spinnerLote) {
+        DOM.spinnerLote.style.display = visible ? 'flex' : 'none';
+    }
+}
+
+
+/* ============================================================================
+   11. HIDRATACIÓN DE RESÚMENES IA
+   ============================================================================ */
+
 async function hidratarResumenes(listaTesis) {
     if (!listaTesis || listaTesis.length === 0) return;
 
-    // Filtrar los que NO están en cache
     const faltantes = listaTesis
         .map(t => t.registro_digital)
         .filter(reg => AppState.cacheResumenes[reg] === undefined);
 
-    if (faltantes.length === 0) {
-        log('Todos los resúmenes ya estaban en cache.');
-        return;
-    }
+    if (faltantes.length === 0) return;
 
-    // Procesar en lotes de 200
     const TAMANO_LOTE = 200;
     const lotes = [];
     for (let i = 0; i < faltantes.length; i += TAMANO_LOTE) {
         lotes.push(faltantes.slice(i, i + TAMANO_LOTE));
     }
 
-    log(`Hidratando resúmenes: ${faltantes.length} faltantes en ${lotes.length} lote(s).`);
+    log(`Hidratando ${faltantes.length} resúmenes en ${lotes.length} lote(s)...`);
 
     for (const lote of lotes) {
         try {
@@ -229,163 +436,198 @@ async function hidratarResumenes(listaTesis) {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const data = await response.json();
-            if (!data.success || !data.resumenes) {
-                throw new Error('Respuesta inválida del backend');
-            }
+            if (!data.success || !data.resumenes) throw new Error('Respuesta inválida');
 
-            // Guardar en cache
             for (const [reg, resumen] of Object.entries(data.resumenes)) {
                 AppState.cacheResumenes[parseInt(reg, 10)] = resumen || '';
             }
 
-            // Actualizar el DOM de las tarjetas ya renderizadas
+            // Actualizar el DOM de tarjetas ya renderizadas
             for (const [reg, resumen] of Object.entries(data.resumenes)) {
-                const tarjeta = DOM.listadoContainer?.querySelector(`[data-registro="${reg}"] .btn-resumen`);
-                if (tarjeta) {
-                    tarjeta.dataset.resumen = resumen || 'Sin resumen';
-                }
+                const el = DOM.listadoContainer?.querySelector(
+                    `[data-registro="${reg}"] .btn-resumen`
+                );
+                if (el) el.dataset.resumen = resumen || 'Sin resumen';
             }
         } catch (error) {
             log(`Error hidratando lote: ${error.message}`, 'warn');
         }
     }
-
-    log('Hidratación de resúmenes completada.');
 }
 
 
 /* ============================================================================
-   6. CAMBIO DE MODO
+   12. RENDERIZADO DE TARJETAS
    ============================================================================ */
 
-function cambiarModo(nuevoModo) {
-    if (nuevoModo === AppState.modoActual) return;
+function construirTarjeta(t, opciones = {}) {
+    const claseBorde = t.tipo === 'Jurisprudencia' ? 'jurisprudencia' : 'aislada';
+    const materiasStr = formatearMaterias(t.materia);
+    const fechaTxt = formatearFechaLarga(t.fecha_publicacion);
+    const resumenCache = AppState.cacheResumenes[t.registro_digital] || '';
 
-    log(`Cambiando modo: ${AppState.modoActual} → ${nuevoModo}`);
-    AppState.modoActual = nuevoModo;
-
-    document.body.setAttribute('data-modo', nuevoModo);
-
-    if (DOM.pestanaFiltros) DOM.pestanaFiltros.classList.toggle('activa', nuevoModo === 'filtros');
-    if (DOM.pestanaSemantica) DOM.pestanaSemantica.classList.toggle('activa', nuevoModo === 'semantico');
-
-    if (DOM.mensajeContextual) {
-        DOM.mensajeContextual.innerText = nuevoModo === 'filtros'
-            ? 'Explora el corpus por tipo, materia y texto.'
-            : 'Describe tu consulta en lenguaje natural. La IA buscará por significado.';
+    let badgeSimilitud = '';
+    if (opciones.mostrarSimilitud && t.similitud !== undefined) {
+        const nivel = clasificarSimilitud(t.similitud);
+        badgeSimilitud = `<div class="badge-similitud ${nivel.clase}">${nivel.etiqueta}</div>`;
     }
 
-    if (DOM.cajaLocal) DOM.cajaLocal.style.display = nuevoModo === 'filtros' ? 'block' : 'none';
-    if (DOM.cajaSemantica) DOM.cajaSemantica.style.display = nuevoModo === 'semantico' ? 'flex' : 'none';
-
-    if (nuevoModo === 'filtros') {
-        ejecutarPodaDeArbol();
-    } else {
-        if (AppState.resultadosSemanticos.length > 0) {
-            AppState.tesisFiltradas = AppState.resultadosSemanticos;
-            aplicarFiltrosSobreResultados();
-        } else {
-            mostrarEstadoSemanticoVacio();
-        }
-    }
-}
-
-function mostrarEstadoSemanticoVacio() {
-    if (!DOM.listadoContainer) return;
-    DOM.listadoContainer.innerHTML = `
-        <div class="estado-vacio">
-            🧠 Escribe una consulta y presiona "Buscar por significado".
+    return `
+        <div class="tarjeta ${claseBorde}" data-registro="${t.registro_digital}">
+            ${badgeSimilitud}
+            <div class="tarjeta-meta">
+                <span>📌 REG: ${t.registro_digital}</span>
+                <span>${escapeHtml(t.tipo || 'Aislada')} · ${escapeHtml(materiasStr)}</span>
+            </div>
+            <div class="tarjeta-rubro">${escapeHtml(t.rubro)}</div>
+            <div class="tarjeta-footer">
+                <span class="btn-resumen" data-resumen="${escapeHtml(resumenCache)}">
+                    <i class="fas fa-robot"></i> Resumen IA
+                </span>
+                <span class="fecha-publicacion">
+                    📅 Publicada el ${escapeHtml(fechaTxt)}
+                </span>
+            </div>
         </div>
     `;
-    actualizarMetricasSobreLista([]);
+}
+
+function clasificarSimilitud(score) {
+    // Umbrales iniciales (se calibrarán con datos reales)
+    const s = parseFloat(score);
+    if (s >= 0.55) return { clase: 'alta',  etiqueta: 'Alta' };
+    if (s >= 0.50) return { clase: 'media', etiqueta: 'Media' };
+    return { clase: 'baja', etiqueta: 'Baja' };
+}
+
+function renderizarTarjetas(lista, opciones = {}) {
+    if (!DOM.listadoContainer) return;
+
+    if (lista.length === 0) {
+        DOM.listadoContainer.innerHTML = `
+            <div class="estado-vacio">🔍 Ninguna coincidencia.</div>
+        `;
+        return;
+    }
+
+    let html = '';
+
+    if (opciones.encabezado) {
+        html += `<div class="mensaje-ayuda">${escapeHtml(opciones.encabezado)}</div>`;
+    }
+
+    for (const t of lista) {
+        html += construirTarjeta(t, opciones);
+    }
+
+    DOM.listadoContainer.innerHTML = html;
+    log(`${lista.length} tarjetas renderizadas.`);
+
+    // Hidratar resúmenes en background
+    hidratarResumenes(lista);
 }
 
 
 /* ============================================================================
-   7. PODA DE ÁRBOL (MODO FILTROS)
+   13. PESTAÑA EXPLORAR
    ============================================================================ */
 
-function ejecutarPodaDeArbol() {
-    log('Aplicando poda de árbol...');
+const EXPLORAR_LOTE_INICIAL = 200;
+const EXPLORAR_LOTE_INCREMENTO = 100;
 
-    const tipo = DOM.filtroTipo ? DOM.filtroTipo.value : 'todas';
-    const materia = DOM.filtroMateria ? DOM.filtroMateria.value : 'todas';
-    const busqueda = (DOM.filtroBusqueda ? DOM.filtroBusqueda.value : '')
-        .toLowerCase().trim();
+function renderizarExplorar() {
+    const tipo = DOM.explorarTipo ? DOM.explorarTipo.value : 'todas';
+    const materia = DOM.explorarMateria ? DOM.explorarMateria.value : 'todas';
 
-    AppState.consultaLocal = busqueda;
-
-    AppState.tesisFiltradas = AppState.todasLasTesis.filter(t => {
+    const filtradas = AppState.todasLasTesis.filter(t => {
         if (tipo !== 'todas' && t.tipo !== tipo) return false;
-
         if (materia !== 'todas') {
             const materias = Array.isArray(t.materia)
                 ? t.materia
                 : (t.materia || '').split(',').map(m => m.trim());
             if (!materias.includes(materia)) return false;
         }
-
-        if (busqueda) {
-            const rubro = (t.rubro || '').toLowerCase();
-            if (!rubro.includes(busqueda)) return false;
-        }
-
         return true;
     });
 
-    log(`${AppState.tesisFiltradas.length} tesis después de la poda.`);
-    actualizarMetricasSobreLista(AppState.tesisFiltradas);
-    renderizarListado(AppState.tesisFiltradas);
+    AppState.explorarFiltradas = filtradas;
+    AppState.explorarVisibles = Math.min(EXPLORAR_LOTE_INICIAL, filtradas.length);
+
+    actualizarDashboard(filtradas.length);
+    pintarRangoFechas();
+    renderizarTarjetas(filtradas.slice(0, AppState.explorarVisibles));
+}
+
+function cargarMasExplorar() {
+    const total = AppState.explorarFiltradas.length;
+    if (AppState.explorarVisibles >= total) return;
+
+    cargandoLote = true;
+    mostrarSpinnerLote(true);
+
+    setTimeout(() => {
+        const nuevas = Math.min(
+            AppState.explorarVisibles + EXPLORAR_LOTE_INCREMENTO,
+            total
+        );
+        const lote = AppState.explorarFiltradas.slice(
+            AppState.explorarVisibles,
+            nuevas
+        );
+
+        // Añadir al DOM sin borrar lo anterior
+        const html = lote.map(t => construirTarjeta(t)).join('');
+        DOM.listadoContainer.insertAdjacentHTML('beforeend', html);
+
+        AppState.explorarVisibles = nuevas;
+        hidratarResumenes(lote);
+
+        cargandoLote = false;
+        mostrarSpinnerLote(false);
+    }, 300);  // pequeño delay para que se sienta natural
 }
 
 
 /* ============================================================================
-   8. BÚSQUEDA SEMÁNTICA (MODO SEMÁNTICO)
+   14. PESTAÑA PREGUNTAR
    ============================================================================ */
 
-async function ejecutarBusquedaSemantica() {
-    const consulta = (DOM.consultaSemantica ? DOM.consultaSemantica.value : '').trim();
+async function ejecutarPreguntar() {
+    const consulta = (DOM.preguntarTexto?.value || '').trim();
 
     if (consulta.length < 3) {
         alert('La consulta debe tener al menos 3 caracteres.');
         return;
     }
-    if (AppState.busquedasRestantes <= 0) {
-        alert('Has alcanzado el límite de búsquedas semánticas.');
-        return;
-    }
 
+    AppState.preguntarConsulta = consulta;
     log(`Búsqueda semántica: "${consulta}"`);
-    AppState.consultaSemantica = consulta;
 
     if (DOM.listadoContainer) {
         DOM.listadoContainer.innerHTML = `
             <div class="estado-cargando">
-                <i class="fas fa-circle-notch fa-spin" style="color:#8b5cf6;"></i>
+                <i class="fas fa-circle-notch fa-spin"></i>
                 Buscando por significado...
             </div>
         `;
     }
 
     try {
-        const url = `/api/jurisprudencias/buscar/semantica?q=${encodeURIComponent(consulta)}&limit=20`;
+        const url = `/api/jurisprudencias/buscar/semantica?q=${encodeURIComponent(consulta)}&limit=100`;
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const data = await response.json();
-        if (!data.success || !data.tesis) {
-            throw new Error('Respuesta inválida del backend');
-        }
+        if (!data.success) throw new Error('Respuesta inválida');
 
-        AppState.resultadosSemanticos = data.tesis;
-        log(`${data.tesis.length} resultados semánticos recibidos.`);
+        AppState.preguntarResultados = data.tesis || [];
+        log(`${AppState.preguntarResultados.length} resultados semánticos.`);
 
-        AppState.busquedasRestantes--;
-        guardarContador();
-        actualizarContador();
+        // Mostrar filtros (ahora sí)
+        if (DOM.preguntarFiltros) DOM.preguntarFiltros.style.display = 'grid';
+        if (DOM.preguntarAyuda) DOM.preguntarAyuda.style.display = 'none';
 
-        aplicarFiltrosSobreResultados();
-
+        aplicarFiltrosPreguntar();
     } catch (error) {
         log(`Error en búsqueda semántica: ${error.message}`, 'error');
         if (DOM.listadoContainer) {
@@ -398,121 +640,172 @@ async function ejecutarBusquedaSemantica() {
     }
 }
 
-function aplicarFiltrosSobreResultados() {
-    const tipo = DOM.filtroTipo ? DOM.filtroTipo.value : 'todas';
-    const materia = DOM.filtroMateria ? DOM.filtroMateria.value : 'todas';
+function aplicarFiltrosPreguntar() {
+    const tipo = DOM.preguntarTipo ? DOM.preguntarTipo.value : 'todas';
+    const materia = DOM.preguntarMateria ? DOM.preguntarMateria.value : 'todas';
 
-    const filtrados = AppState.resultadosSemanticos.filter(t => {
+    const filtrados = AppState.preguntarResultados.filter(t => {
         if (tipo !== 'todas' && t.tipo !== tipo) return false;
-
         if (materia !== 'todas') {
             const materias = Array.isArray(t.materia)
                 ? t.materia
                 : (t.materia || '').split(',').map(m => m.trim());
             if (!materias.includes(materia)) return false;
         }
-
         return true;
     });
 
-    AppState.tesisFiltradas = filtrados;
-    log(`${filtrados.length} resultados semánticos tras filtros.`);
-    actualizarMetricasSobreLista(filtrados);
+    AppState.preguntarFiltrados = filtrados;
+    actualizarDashboard(filtrados.length);
 
-    renderizarListado(filtrados, { mostrarSimilitud: true, consulta: AppState.consultaSemantica });
-}
-
-
-/* ============================================================================
-   9. RENDERIZADO
-   ============================================================================ */
-
-function actualizarMetricasSobreLista(lista) {
-    const total = lista.length;
-    const juris = lista.filter(t => t.tipo === 'Jurisprudencia').length;
-    const aisladas = lista.filter(t => t.tipo === 'Aislada').length;
-
-    if (DOM.relojRestantes) DOM.relojRestantes.innerText = total;
-    if (DOM.relojJuris) DOM.relojJuris.innerText = juris;
-    if (DOM.relojAisladas) DOM.relojAisladas.innerText = aisladas;
-}
-
-function renderizarListado(lista, opciones = {}) {
-    if (!DOM.listadoContainer) return;
-
-    if (lista.length === 0) {
+    // Caso especial: filtro deja 0
+    if (filtrados.length === 0 && AppState.preguntarResultados.length > 0) {
         DOM.listadoContainer.innerHTML = `
-            <div class="estado-vacio">🔍 Ninguna coincidencia.</div>
+            <div class="mensaje-ayuda" style="text-align:center; padding: 30px 20px;">
+                ⚠️ Ninguno de los ${AppState.preguntarResultados.length} resultados
+                coincide con los filtros aplicados.<br><br>
+                💡 Prueba a quitar el filtro, o haz una nueva consulta.
+                <br><br>
+                <button class="btn-primario" style="max-width: 200px; margin: 0 auto;"
+                        onclick="limpiarFiltrosPreguntar()">
+                    Limpiar filtros
+                </button>
+            </div>
         `;
         return;
     }
 
-    let html = '';
-    if (opciones.mostrarSimilitud && opciones.consulta) {
-        html += `
-            <div class="estado-vacio" style="text-align:left; padding: 8px 0; color: #a78bfa; font-size: 12px;">
-                🧠 ${lista.length} resultado(s) para: «${escapeHtml(opciones.consulta)}»
-            </div>
-        `;
-    }
+    const encabezado = filtrados.length > 0
+        ? `🧠 ${filtrados.length} tesis relevantes para: «${AppState.preguntarConsulta}»`
+        : '';
 
-    // 🚦 TOPE DE RENDERIZADO: máximo 300 tarjetas a la vez.
-    // Si la lista es más grande, el usuario debe afinar filtros.
-    const TOPE_RENDER = 300;
-    const listaRecortada = lista.slice(0, TOPE_RENDER);
-    const truncado = lista.length > TOPE_RENDER;
+    renderizarTarjetas(filtrados, {
+        mostrarSimilitud: true,
+        encabezado
+    });
+}
 
-    if (truncado) {
-        html += `
-            <div class="estado-vacio" style="text-align:left; padding: 8px 0; color: #f59e0b; font-size: 12px;">
-                ⚠️ Mostrando ${TOPE_RENDER} de ${lista.length}. Afina los filtros para ver más específicos.
-            </div>
-        `;
-    }
-
-    for (const t of listaRecortada) {
-        const claseBorde = t.tipo === 'Jurisprudencia' ? 'jurisprudencia' : 'aislada';
-        const materiasStr = formatearMaterias(t.materia);
-        const fechaFormateada = formatearFecha(t.fecha_publicacion);
-
-        let badgeSimilitud = '';
-        if (opciones.mostrarSimilitud && t.similitud !== undefined) {
-            const sim = parseFloat(t.similitud).toFixed(2);
-            badgeSimilitud = `<div class="badge-similitud">🎯 ${sim}</div>`;
-        }
-
-        // Resumen desde cache si ya lo tenemos, si no string vacío
-        const resumenEnCache = AppState.cacheResumenes[t.registro_digital] || '';
-
-        html += `
-            <div class="tarjeta ${claseBorde}" data-registro="${t.registro_digital}">
-                ${badgeSimilitud}
-                <div class="tarjeta-meta">
-                    <span>📌 REG: ${t.registro_digital}</span>
-                    <span>${escapeHtml(t.tipo || 'Aislada')} · ${escapeHtml(materiasStr)}</span>
-                </div>
-                <div class="tarjeta-rubro">${escapeHtml(t.rubro)}</div>
-                <div class="tarjeta-footer">
-                    <span class="btn-resumen"
-                          data-resumen="${escapeHtml(resumenEnCache)}">
-                        <i class="fas fa-robot"></i> Resumen IA
-                    </span>
-                    <span>📅 ${escapeHtml(fechaFormateada)}</span>
-                </div>
-            </div>
-        `;
-    }
-
-    DOM.listadoContainer.innerHTML = html;
-    log(`${listaRecortada.length} tarjetas renderizadas.`);
-
-    // 🔥 Hidratar resúmenes en background (solo las visibles, sin bloquear)
-    hidratarResumenes(listaRecortada);
+function limpiarFiltrosPreguntar() {
+    if (DOM.preguntarTipo) DOM.preguntarTipo.value = 'todas';
+    if (DOM.preguntarMateria) DOM.preguntarMateria.value = 'todas';
+    aplicarFiltrosPreguntar();
 }
 
 
 /* ============================================================================
-   10. CORTINA DE DETALLE
+   15. PESTAÑA EXACTA
+   ============================================================================ */
+
+async function ejecutarExacta(resetear = true) {
+    const consulta = (DOM.exactaTexto?.value || '').trim();
+
+    if (consulta.length < 2) {
+        alert('La consulta debe tener al menos 2 caracteres.');
+        return;
+    }
+
+    if (resetear) {
+        AppState.exactaConsulta = consulta;
+        AppState.exactaResultados = [];
+        AppState.exactaOffset = 0;
+        AppState.exactaTotal = 0;
+
+        if (DOM.listadoContainer) {
+            DOM.listadoContainer.innerHTML = `
+                <div class="estado-cargando">
+                    <i class="fas fa-circle-notch fa-spin"></i>
+                    Buscando coincidencias literales...
+                </div>
+            `;
+        }
+    }
+
+    const tipo = DOM.exactaTipo ? DOM.exactaTipo.value : 'todas';
+    const materia = DOM.exactaMateria ? DOM.exactaMateria.value : 'todas';
+
+    try {
+        const params = new URLSearchParams({
+            q: AppState.exactaConsulta,
+            offset: AppState.exactaOffset,
+            limit: AppState.exactaLoteSize
+        });
+        if (tipo !== 'todas') params.append('tipo', tipo);
+        if (materia !== 'todas') params.append('materia', materia);
+
+        const url = `/api/jurisprudencias/buscar/exacta?${params.toString()}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        if (!data.success) throw new Error('Respuesta inválida');
+
+        AppState.exactaTotal = data.total;
+        AppState.exactaResultados = AppState.exactaResultados.concat(data.resultados || []);
+        AppState.exactaOffset += AppState.exactaLoteSize;
+
+        // Mostrar filtros
+        if (DOM.exactaFiltros) DOM.exactaFiltros.style.display = 'grid';
+        if (DOM.exactaAyuda) DOM.exactaAyuda.style.display = 'none';
+
+        if (resetear) {
+            aplicarFiltrosExacta();
+        } else {
+            // Solo añadir las nuevas tarjetas
+            const nuevas = data.resultados || [];
+            const html = nuevas.map(t => construirTarjeta(t)).join('');
+            if (DOM.listadoContainer && html) {
+                // Quitar el mensaje de "sin resultados" si lo había
+                DOM.listadoContainer.insertAdjacentHTML('beforeend', html);
+                hidratarResumenes(nuevas);
+            }
+        }
+
+        log(`Exacta: ${AppState.exactaResultados.length}/${AppState.exactaTotal} cargadas.`);
+    } catch (error) {
+        log(`Error en búsqueda exacta: ${error.message}`, 'error');
+        if (DOM.listadoContainer) {
+            DOM.listadoContainer.innerHTML = `
+                <div class="estado-error">
+                    ❌ Error: ${escapeHtml(error.message)}
+                </div>
+            `;
+        }
+    }
+}
+
+function aplicarFiltrosExacta() {
+    // La búsqueda exacta ya trae el filtro aplicado desde el backend
+    // Aquí solo limpiamos y mostramos el resultado completo
+    if (!DOM.listadoContainer) return;
+
+    if (AppState.exactaResultados.length === 0) {
+        DOM.listadoContainer.innerHTML = `
+            <div class="estado-vacio">🔍 Ninguna coincidencia literal.</div>
+        `;
+        actualizarDashboard(0);
+        return;
+    }
+
+    actualizarDashboard(AppState.exactaTotal);
+
+    const encabezado = `📖 ${AppState.exactaTotal} coincidencias para: «${AppState.exactaConsulta}»`;
+
+    let html = `<div class="mensaje-ayuda">${escapeHtml(encabezado)}</div>`;
+    for (const t of AppState.exactaResultados) {
+        html += construirTarjeta(t);
+    }
+    DOM.listadoContainer.innerHTML = html;
+    hidratarResumenes(AppState.exactaResultados);
+}
+
+function cargarMasExacta() {
+    if (AppState.exactaResultados.length >= AppState.exactaTotal) return;
+    ejecutarExacta(false);
+}
+
+
+/* ============================================================================
+   16. CORTINA DE DETALLE
    ============================================================================ */
 
 async function abrirCortina(registro) {
@@ -529,9 +822,7 @@ async function abrirCortina(registro) {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const data = await response.json();
-        if (!data.success || !data.tesis) {
-            throw new Error('Tesis no encontrada');
-        }
+        if (!data.success || !data.tesis) throw new Error('Tesis no encontrada');
 
         const t = data.tesis;
 
@@ -539,7 +830,9 @@ async function abrirCortina(registro) {
         if (DOM.detBadgeMateria) DOM.detBadgeMateria.innerText = formatearMaterias(t.materia);
         if (DOM.detRubro) DOM.detRubro.innerText = t.rubro || 'Sin rubro';
         if (DOM.detReg) DOM.detReg.innerText = t.registro_digital;
-        if (DOM.detFecha) DOM.detFecha.innerText = `📅 ${formatearFecha(t.fecha_publicacion)}`;
+        if (DOM.detFecha) {
+            DOM.detFecha.innerText = `📅 Publicada el ${formatearFechaLarga(t.fecha_publicacion)}`;
+        }
         if (DOM.detTextoContenedor) DOM.detTextoContenedor.innerText = construirTextoDetalle(t);
 
         log(`Detalle del registro ${registro} cargado.`);
@@ -561,52 +854,62 @@ function construirTextoDetalle(t) {
     return partes.join('\n\n');
 }
 
+function cerrarCortina() {
+    if (DOM.cortinaDetalle) DOM.cortinaDetalle.classList.add('oculta');
+    AppState.registroActual = null;
+}
+
 
 /* ============================================================================
-   11. INTERACCIÓN
+   17. INTERACCIÓN GENERAL
    ============================================================================ */
 
-if (DOM.pestanaFiltros) {
-    DOM.pestanaFiltros.addEventListener('click', () => cambiarModo('filtros'));
-}
-if (DOM.pestanaSemantica) {
-    DOM.pestanaSemantica.addEventListener('click', () => cambiarModo('semantico'));
-}
+// --- Header ---
+if (DOM.btnHamburguesa) DOM.btnHamburguesa.addEventListener('click', abrirDrawer);
+if (DOM.btnTema) DOM.btnTema.addEventListener('click', alternarTema);
 
-if (DOM.filtroTipo) {
-    DOM.filtroTipo.addEventListener('change', () => {
-        if (AppState.modoActual === 'filtros') ejecutarPodaDeArbol();
-        else aplicarFiltrosSobreResultados();
-    });
-}
-if (DOM.filtroMateria) {
-    DOM.filtroMateria.addEventListener('change', () => {
-        if (AppState.modoActual === 'filtros') ejecutarPodaDeArbol();
-        else aplicarFiltrosSobreResultados();
-    });
-}
+// --- Drawer ---
+if (DOM.btnCerrarDrawer) DOM.btnCerrarDrawer.addEventListener('click', cerrarDrawer);
+if (DOM.drawerOverlay) DOM.drawerOverlay.addEventListener('click', cerrarDrawer);
 
-if (DOM.filtroBusqueda) {
-    DOM.filtroBusqueda.addEventListener('input', ejecutarPodaDeArbol);
-}
+// --- Pestañas ---
+if (DOM.pestanaExplorar) DOM.pestanaExplorar.addEventListener('click', () => cambiarPestana('explorar'));
+if (DOM.pestanaPreguntar) DOM.pestanaPreguntar.addEventListener('click', () => cambiarPestana('preguntar'));
+if (DOM.pestanaExacta) DOM.pestanaExacta.addEventListener('click', () => cambiarPestana('exacta'));
 
-if (DOM.btnBuscarSemantica) {
-    DOM.btnBuscarSemantica.addEventListener('click', ejecutarBusquedaSemantica);
-}
+// --- Explorar ---
+if (DOM.explorarTipo) DOM.explorarTipo.addEventListener('change', renderizarExplorar);
+if (DOM.explorarMateria) DOM.explorarMateria.addEventListener('change', renderizarExplorar);
 
-if (DOM.consultaSemantica) {
-    DOM.consultaSemantica.addEventListener('keydown', (e) => {
+// --- Preguntar ---
+if (DOM.btnPreguntar) DOM.btnPreguntar.addEventListener('click', ejecutarPreguntar);
+if (DOM.preguntarTexto) {
+    DOM.preguntarTexto.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            ejecutarBusquedaSemantica();
+            ejecutarPreguntar();
         }
     });
 }
+if (DOM.preguntarTipo) DOM.preguntarTipo.addEventListener('change', aplicarFiltrosPreguntar);
+if (DOM.preguntarMateria) DOM.preguntarMateria.addEventListener('change', aplicarFiltrosPreguntar);
 
-// Click en tarjeta: abrir cortina. Click en "Resumen IA": mostrar alerta con el resumen.
+// --- Exacta ---
+if (DOM.btnExacta) DOM.btnExacta.addEventListener('click', () => ejecutarExacta(true));
+if (DOM.exactaTexto) {
+    DOM.exactaTexto.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            ejecutarExacta(true);
+        }
+    });
+}
+if (DOM.exactaTipo) DOM.exactaTipo.addEventListener('change', () => ejecutarExacta(true));
+if (DOM.exactaMateria) DOM.exactaMateria.addEventListener('change', () => ejecutarExacta(true));
+
+// --- Listado: clic en tarjeta o en "Resumen IA" ---
 if (DOM.listadoContainer) {
     DOM.listadoContainer.addEventListener('click', (e) => {
-        // Caso 1: clic en el botón "Resumen IA"
         const btnResumen = e.target.closest('.btn-resumen');
         if (btnResumen) {
             e.stopPropagation();
@@ -614,12 +917,11 @@ if (DOM.listadoContainer) {
             if (resumen && resumen.trim() !== '') {
                 alert(`🤖 SÍNTESIS IA:\n\n${resumen}`);
             } else {
-                alert('⏳ Resumen IA aún no disponible. Espera unos segundos o abre la tesis completa.');
+                alert('⏳ Resumen IA aún no disponible. Espera unos segundos.');
             }
             return;
         }
 
-        // Caso 2: clic en cualquier otra parte de la tarjeta → abrir cortina
         const tarjeta = e.target.closest('[data-registro]');
         if (!tarjeta) return;
         const registro = parseInt(tarjeta.dataset.registro, 10);
@@ -627,19 +929,14 @@ if (DOM.listadoContainer) {
     });
 }
 
-if (DOM.btnCerrarCortina) {
-    DOM.btnCerrarCortina.addEventListener('click', () => {
-        if (DOM.cortinaDetalle) DOM.cortinaDetalle.classList.add('oculta');
-        AppState.registroActual = null;
-    });
-}
-
+// --- Cortina ---
+if (DOM.btnCerrarCortina) DOM.btnCerrarCortina.addEventListener('click', cerrarCortina);
 if (DOM.btnCopiarTexto) {
     DOM.btnCopiarTexto.addEventListener('click', () => {
         const registro = AppState.registroActual;
         if (!registro) return;
 
-        const t = [...AppState.todasLasTesis, ...AppState.resultadosSemanticos]
+        const t = [...AppState.todasLasTesis, ...AppState.preguntarResultados, ...AppState.exactaResultados]
             .find(x => x.registro_digital === registro);
         if (!t) return;
 
@@ -654,12 +951,34 @@ if (DOM.btnCopiarTexto) {
     });
 }
 
+// --- Tecla ESC cierra drawer o cortina ---
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        cerrarDrawer();
+        if (DOM.cortinaDetalle && !DOM.cortinaDetalle.classList.contains('oculta')) {
+            cerrarCortina();
+        }
+    }
+});
+
+// --- Scroll (header + scroll infinito) ---
+window.addEventListener('scroll', manejarScrollHeader, { passive: true });
+
 
 /* ============================================================================
-   12. ARRANQUE
+   18. ARRANQUE
    ============================================================================ */
 document.addEventListener('DOMContentLoaded', () => {
     log('Aplicación iniciada.');
-    cargarContador();
-    cargarTesisDelBackend();
+    cargarTema();
+
+    // Si la URL trae hash, ir directo a esa pestaña
+    const hash = window.location.hash.replace('#', '');
+    if (['explorar', 'preguntar', 'exacta'].includes(hash)) {
+        cambiarPestana(hash);
+    }
+
+    // Cargar datos
+    cargarStats();
+    cargarIndice();
 });

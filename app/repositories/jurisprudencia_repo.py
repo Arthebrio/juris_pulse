@@ -129,6 +129,151 @@ class JurisprudenciaRepository:
         finally:
             conn.close()
 
+        # ------------------------------------------------------------------------
+    # MÉTODO 1-QUINQUIES: BÚSQUEDA EXACTA (literal)
+    # ------------------------------------------------------------------------
+    def buscar_exacta(
+        self,
+        consulta: str,
+        tipo: Optional[str] = None,
+        materia: Optional[str] = None,
+        offset: int = 0,
+        limit: int = 100,
+    ) -> Dict[str, Any]:
+        """
+        Búsqueda literal (ILIKE) en rubro y resumen_ia.
+        Ignora mayúsculas/minúsculas. No tolera errores ortográficos.
+
+        Filtros opcionales:
+          - tipo: 'Jurisprudencia' | 'Aislada' | None
+          - materia: 'Penal' | 'Civil' | ... | None
+        Paginación:
+          - offset: desde qué fila empezar
+          - limit: cuántas devolver
+
+        Devuelve:
+          { total: int, resultados: [ {...}, ... ] }
+        """
+        logger.info(
+            f"🔤 Búsqueda exacta: '{consulta}' "
+            f"(tipo={tipo}, materia={materia}, offset={offset}, limit={limit})"
+        )
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Construcción dinámica del WHERE
+            patron = f"%{consulta}%"
+            condiciones = ["(rubro ILIKE %s OR resumen_ia ILIKE %s)"]
+            params: list = [patron, patron]
+
+            if tipo:
+                condiciones.append("tipo = %s")
+                params.append(tipo)
+
+            if materia:
+                condiciones.append("materia ILIKE %s")
+                params.append(f"%{materia}%")
+
+            where_sql = " AND ".join(condiciones)
+
+            # 1. Contar total (sin paginación)
+            cur.execute(
+                f"SELECT COUNT(*) AS total FROM jurisprudencias WHERE {where_sql};",
+                params,
+            )
+            total = cur.fetchone()["total"]
+
+            # 2. Traer la página solicitada
+            cur.execute(
+                f"""
+                SELECT
+                    registro_digital,
+                    tipo,
+                    epoca,
+                    materia,
+                    fecha_publicacion,
+                    rubro,
+                    resumen_ia
+                FROM jurisprudencias
+                WHERE {where_sql}
+                ORDER BY fecha_publicacion DESC, registro_digital DESC
+                OFFSET %s LIMIT %s;
+                """,
+                params + [offset, limit],
+            )
+            resultados = [dict(r) for r in cur.fetchall()]
+
+            logger.info(
+                f"✅ Búsqueda exacta: {total} total, "
+                f"{len(resultados)} devueltos (offset={offset})."
+            )
+            return {"total": total, "resultados": resultados}
+        except Exception as e:
+            logger.error(f"❌ Error en buscar_exacta: {e}")
+            return {"total": 0, "resultados": []}
+        finally:
+            conn.close()
+
+    # ------------------------------------------------------------------------
+    # MÉTODO 1-QUATER: ESTADÍSTICAS DEL CORPUS
+    # ------------------------------------------------------------------------
+    def obtener_stats(self) -> Dict[str, Any]:
+        """
+        Devuelve estadísticas del corpus: total de tesis y rango de fechas.
+
+        Útil para el dashboard: el usuario ve cuántas tesis hay y de qué
+        fechas a qué fechas va el corpus.
+        """
+        logger.info("📥 Obteniendo estadísticas del corpus...")
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            cur.execute("""
+                SELECT
+                    COUNT(*) AS total,
+                    MIN(fecha_publicacion) FILTER (WHERE fecha_publicacion > '1900-01-01') AS fecha_min,
+                    MAX(fecha_publicacion) AS fecha_max
+                FROM jurisprudencias;
+            """)
+            fila = cur.fetchone()
+            if not fila:
+                return {"total": 0, "fecha_min": None, "fecha_max": None}
+
+            fecha_min = fila["fecha_min"]
+            fecha_max = fila["fecha_max"]
+
+            resultado = {
+                "total": fila["total"],
+                "fecha_min": fecha_min.isoformat() if fecha_min else None,
+                "fecha_max": fecha_max.isoformat() if fecha_max else None,
+                "fecha_max_texto": self._formatear_fecha_larga(fecha_max) if fecha_max else None,
+            }
+            logger.info(
+                f"✅ Stats: {resultado['total']} tesis "
+                f"({resultado['fecha_min']} a {resultado['fecha_max']})."
+            )
+            return resultado
+        except Exception as e:
+            logger.error(f"❌ Error en obtener_stats: {e}")
+            return {"total": 0, "fecha_min": None, "fecha_max": None}
+        finally:
+            conn.close()
+
+    def _formatear_fecha_larga(self, fecha) -> str:
+        """
+        Convierte una fecha (datetime.date) a texto largo en español.
+        Ej: date(2026, 9, 11) → '11 de septiembre de 2026'
+        """
+        meses = {
+            1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
+            5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
+            9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre",
+        }
+        return f"{fecha.day} de {meses[fecha.month]} de {fecha.year}"
+
+
+
     # ------------------------------------------------------------------------
     # MÉTODO 1-TER: RESÚMENES IA POR LOTE
     # ------------------------------------------------------------------------

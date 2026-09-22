@@ -1,53 +1,63 @@
 /* ============================================================================
-   🎨 JURIS_PULSE - HOJA DE ESTILOS (VERSIÓN DUAL: FILTROS + SEMÁNTICA)
+   🎨 JURIS_PULSE - HOJA DE ESTILOS v3.1
    ============================================================================
    Bloques:
-     1. Variables
-     2. Reset y base
-     3. Layout principal
-     4. Encabezado
-     5. Pestañas de modo
-     6. Mensaje contextual
-     7. Filtros (Tipo, Materia)
-     8. Caja de búsqueda (modo filtros)
-     9. Caja semántica (modo semántico)
-    10. Métricas
-    11. Listado de tesis (tarjetas)
-    12. Badge de similitud (semántica)
-    13. Cortina de detalle
-    14. Botones
-    15. Estados (cargando, vacío, error)
-    16. Responsive
-    17. Footer
+     1.  Variables (paletas claro/oscuro)
+     2.  Reset y base
+     3.  Layout principal
+     4.  Header (expandido / compacto)
+     5.  Pestañas de modo
+     6.  Dashboard (total + fechas)
+     7.  Filtros
+     8.  Paneles (Explorar / Preguntar / Exacta)
+     9.  Caja de búsqueda semántica / exacta
+    10.  Mensaje de ayuda
+    11.  Listado de tarjetas
+    12.  Badge de similitud (Alta / Media / Baja)
+    13.  Spinner de carga de lote
+    14.  Drawer (menú lateral)
+    15.  Cortina de detalle
+    16.  Botones
+    17.  Estados (cargando, vacío, error)
+    18.  Responsive
+    19.  Footer
    ============================================================================ */
 
 
 /* ============================================================================
-   1. VARIABLES
+   1. VARIABLES (PALETAS CLARO / OSCURO)
    ============================================================================ */
 :root {
-    /* Colores base */
+    /* ===== TEMA OSCURO (default) ===== */
     --fondo-principal: #020617;
     --fondo-tarjeta: #0f172a;
     --fondo-input: #1e293b;
     --borde: #1e293b;
+    --borde-suave: #334155;
 
-    /* Acento modo FILTROS (dorado) */
-    --acento-filtros: #f59e0b;
-    --acento-filtros-suave: #fbbf24;
+    /* Acento modo EXPLORAR (dorado) */
+    --acento-explorar: #f59e0b;
 
-    /* Acento modo SEMÁNTICA (violeta) */
-    --acento-semantica: #8b5cf6;
-    --acento-semantica-suave: #a78bfa;
+    /* Acento modo PREGUNTAR (violeta) */
+    --acento-preguntar: #8b5cf6;
 
-    /* Acento activo (cambia según el modo, se sobreescribe con [data-modo]) */
-    --acento: var(--acento-filtros);
-    --acento-suave: var(--acento-filtros-suave);
+    /* Acento modo EXACTA (cian) */
+    --acento-exacta: #06b6d4;
+
+    /* Acento activo (cambia según el modo) */
+    --acento: var(--acento-explorar);
 
     /* Texto */
     --texto-principal: #e2e8f0;
     --texto-secundario: #94a3b8;
     --texto-tenue: #64748b;
+
+    /* Semántico */
+    --similitud-alta: #10b981;
+    --similitud-media: #f59e0b;
+    --similitud-baja: #64748b;
+
+    /* Feedback */
     --rojo-error: #f87171;
 
     /* Medidas */
@@ -55,11 +65,23 @@
     --transicion: 0.2s ease;
 }
 
-/* Cuando el body tenga data-modo="semantico", el acento cambia a violeta */
-body[data-modo="semantico"] {
-    --acento: var(--acento-semantica);
-    --acento-suave: var(--acento-semantica-suave);
+/* ===== TEMA CLARO ===== */
+[data-tema="claro"] {
+    --fondo-principal: #f8fafc;
+    --fondo-tarjeta: #ffffff;
+    --fondo-input: #f1f5f9;
+    --borde: #e2e8f0;
+    --borde-suave: #cbd5e1;
+
+    --texto-principal: #0f172a;
+    --texto-secundario: #475569;
+    --texto-tenue: #94a3b8;
 }
+
+/* Cuando cambia el modo, cambia el acento */
+body[data-modo="explorar"]  { --acento: var(--acento-explorar); }
+body[data-modo="preguntar"] { --acento: var(--acento-preguntar); }
+body[data-modo="exacta"]    { --acento: var(--acento-exacta); }
 
 
 /* ============================================================================
@@ -80,6 +102,7 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    transition: background-color var(--transicion), color var(--transicion);
 }
 
 
@@ -99,27 +122,82 @@ body {
 
 
 /* ============================================================================
-   4. ENCABEZADO
+   4. HEADER (EXPANDIDO / COMPACTO)
    ============================================================================ */
-header {
-    background-color: rgba(15, 23, 42, 0.8);
-    backdrop-filter: blur(8px);
+.header {
+    background-color: var(--fondo-tarjeta);
     border-bottom: 1px solid var(--borde);
-    padding: 16px;
+    padding: 12px 16px 8px;
     position: sticky;
     top: 0;
     z-index: 40;
-    text-align: center;
+    transition: padding var(--transicion);
+}
+
+.header-fila {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
 }
 
 .logo {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 900;
     letter-spacing: 0.05em;
+    text-align: center;
+    flex: 1;
 }
 
-.logo .pulse {
-    color: var(--acento-filtros);
+.logo .logo-pulse {
+    color: var(--acento-explorar);
+}
+
+.logo-compacto {
+    display: none;
+}
+
+/* Estado COMPACTO: al hacer scroll hacia abajo */
+.header.compacto {
+    padding: 6px 16px 4px;
+}
+
+.header.compacto .logo-texto,
+.header.compacto .logo-pulse {
+    display: none;
+}
+
+.header.compacto .logo-compacto {
+    display: inline;
+    font-size: 16px;
+}
+
+.header.compacto .logo {
+    font-size: 16px;
+}
+
+/* ============================================================================
+   4.1 BOTONES DEL HEADER (hamburguesa y tema)
+   ============================================================================ */
+.btn-icono {
+    background: transparent;
+    border: none;
+    color: var(--texto-secundario);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background var(--transicion), color var(--transicion);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icono:hover {
+    background-color: var(--fondo-input);
+    color: var(--texto-principal);
 }
 
 
@@ -128,20 +206,20 @@ header {
    ============================================================================ */
 .pestanas {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    background-color: var(--fondo-tarjeta);
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    background-color: var(--fondo-principal);
     border: 1px solid var(--borde);
     border-radius: var(--radio);
-    padding: 6px;
+    padding: 4px;
 }
 
 .pestana {
     background: transparent;
     border: none;
-    padding: 12px;
+    padding: 10px 8px;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: bold;
     color: var(--texto-secundario);
     cursor: pointer;
@@ -149,7 +227,7 @@ header {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     font-family: inherit;
 }
 
@@ -158,36 +236,68 @@ header {
 }
 
 .pestana.activa {
-    background-color: var(--acento-filtros);
-    color: var(--fondo-principal);
+    background-color: var(--acento);
+    color: #ffffff;
 }
 
-body[data-modo="semantico"] .pestana.activa {
-    background-color: var(--acento-semantica);
-}
+body[data-modo="explorar"]  .pestana.activa { background-color: var(--acento-explorar); }
+body[data-modo="preguntar"] .pestana.activa { background-color: var(--acento-preguntar); }
+body[data-modo="exacta"]    .pestana.activa { background-color: var(--acento-exacta); }
 
 
 /* ============================================================================
-   6. MENSAJE CONTEXTUAL
+   6. DASHBOARD (TOTAL + FECHAS)
    ============================================================================ */
-.mensaje-contextual {
+.dashboard {
+    background-color: var(--fondo-tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.dashboard-total {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.dashboard-numero {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--acento);
+}
+
+.dashboard-label {
     font-size: 12px;
     color: var(--texto-secundario);
-    padding: 10px 12px;
-    background-color: rgba(15, 23, 42, 0.5);
-    border-left: 3px solid var(--acento);
-    border-radius: 6px;
-    transition: border-color var(--transicion);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.dashboard-fechas {
+    font-size: 11px;
+    color: var(--texto-secundario);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-align: right;
 }
 
 
 /* ============================================================================
-   7. FILTROS (TIPO Y MATERIA)
+   7. FILTROS
    ============================================================================ */
 .grid-filtros {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
+    margin-top: 8px;
 }
 
 .selector {
@@ -202,55 +312,50 @@ body[data-modo="semantico"] .pestana.activa {
     cursor: pointer;
     transition: border-color var(--transicion);
     font-family: inherit;
+    width: 100%;
 }
 
 .selector:focus {
     border-color: var(--acento);
 }
 
+/* Filtros post-búsqueda: aparecen con animación suave */
+.filtros-post {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 
 /* ============================================================================
-   8. CAJA DE BÚSQUEDA (MODO FILTROS)
+   8. PANELES (EXPLORAR / PREGUNTAR / EXACTA)
    ============================================================================ */
-.caja-busqueda {
-    position: relative;
-}
-
-.caja-busqueda input {
-    width: 100%;
-    background-color: var(--fondo-tarjeta);
-    border: 1px solid var(--borde);
-    border-radius: var(--radio);
-    padding: 12px 14px 12px 40px;
-    color: var(--texto-principal);
-    font-size: 13px;
-    outline: none;
-    font-family: inherit;
-    transition: border-color var(--transicion);
-}
-
-.caja-busqueda input:focus {
-    border-color: var(--acento);
-}
-
-.caja-busqueda .icono-buscar {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--texto-tenue);
-    font-size: 13px;
-    pointer-events: none;
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 
 /* ============================================================================
-   9. CAJA SEMÁNTICA (MODO SEMÁNTICO)
+   9. CAJA DE BÚSQUEDA SEMÁNTICA / EXACTA
    ============================================================================ */
 .caja-semantica {
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+.caja-label {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--texto-secundario);
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .caja-semantica textarea {
@@ -260,123 +365,53 @@ body[data-modo="semantico"] .pestana.activa {
     border-radius: var(--radio);
     padding: 14px;
     color: var(--texto-principal);
-    font-size: 13px;
+    font-size: 14px;
     font-family: inherit;
     outline: none;
     resize: vertical;
-    min-height: 80px;
+    min-height: 90px;
     line-height: 1.5;
     transition: border-color var(--transicion);
 }
 
 .caja-semantica textarea:focus {
-    border-color: var(--acento-semantica);
+    border-color: var(--acento);
 }
 
-.boton-semantica {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-}
-
-.btn-buscar-semantica {
-    flex: 1;
-    background-color: var(--acento-semantica);
-    color: var(--texto-principal);
-    border: none;
-    border-radius: 10px;
-    padding: 14px;
-    font-size: 14px;
-    font-weight: bold;
-    cursor: pointer;
-    font-family: inherit;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: background var(--transicion);
-}
-
-.btn-buscar-semantica:hover:not(:disabled) {
-    background-color: var(--acento-semantica-suave);
-}
-
-.btn-buscar-semantica:disabled {
-    background-color: var(--fondo-input);
-    color: var(--texto-tenue);
-    cursor: not-allowed;
-}
-
-.contador-busquedas {
-    font-size: 12px;
-    color: var(--texto-secundario);
-    font-weight: bold;
-    white-space: nowrap;
-    padding: 8px 12px;
+.input-texto {
+    width: 100%;
     background-color: var(--fondo-tarjeta);
     border: 1px solid var(--borde);
-    border-radius: 8px;
-}
-
-.contador-busquedas.agotado {
-    color: var(--rojo-error);
-    border-color: var(--rojo-error);
-}
-
-
-/* ============================================================================
-   10. MÉTRICAS (DASHBOARD)
-   ============================================================================ */
-.dashboard-metricas {
-    background-color: rgba(15, 23, 42, 0.6);
-    border: 1px solid var(--borde);
     border-radius: var(--radio);
-    padding: 12px;
-}
-
-.dashboard-titulo {
-    font-size: 11px;
-    font-weight: bold;
-    color: var(--texto-secundario);
-    margin-bottom: 8px;
-}
-
-.grid-metricas {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px;
-}
-
-.metrica {
-    background-color: var(--fondo-principal);
-    border: 1px solid var(--borde);
-    border-radius: 8px;
-    padding: 8px;
-    text-align: center;
-}
-
-.metrica-label {
-    font-size: 10px;
-    color: var(--texto-tenue);
-    font-weight: bold;
-    text-transform: uppercase;
-}
-
-.metrica-valor {
-    font-size: 16px;
-    font-weight: 900;
+    padding: 14px;
     color: var(--texto-principal);
-    margin-top: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color var(--transicion);
 }
 
-.metrica-valor.dorado {
-    color: var(--acento);
+.input-texto:focus {
+    border-color: var(--acento);
 }
 
 
 /* ============================================================================
-   11. LISTADO DE TESIS (TARJETAS)
+   10. MENSAJE DE AYUDA (inferior de cada panel)
+   ============================================================================ */
+.mensaje-ayuda {
+    font-size: 12px;
+    color: var(--texto-secundario);
+    padding: 10px 12px;
+    background-color: var(--fondo-tarjeta);
+    border-left: 3px solid var(--acento);
+    border-radius: 6px;
+    transition: border-color var(--transicion);
+}
+
+
+/* ============================================================================
+   11. LISTADO DE TARJETAS
    ============================================================================ */
 .listado {
     display: flex;
@@ -401,7 +436,7 @@ body[data-modo="semantico"] .pestana.activa {
 }
 
 .tarjeta.jurisprudencia {
-    border-left: 4px solid var(--acento-filtros);
+    border-left: 4px solid var(--acento-explorar);
 }
 
 .tarjeta.aislada {
@@ -432,6 +467,8 @@ body[data-modo="semantico"] .pestana.activa {
     align-items: center;
     font-size: 11px;
     color: var(--texto-secundario);
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
 .tarjeta-footer .btn-resumen {
@@ -439,28 +476,140 @@ body[data-modo="semantico"] .pestana.activa {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    cursor: default;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background var(--transicion);
+}
+
+.tarjeta-footer .btn-resumen:hover {
+    background-color: var(--fondo-input);
+}
+
+.tarjeta-footer .fecha-publicacion {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
 
 /* ============================================================================
-   12. BADGE DE SIMILITUD (SEMÁNTICA)
+   12. BADGE DE SIMILITUD (ALTA / MEDIA / BAJA)
    ============================================================================ */
 .badge-similitud {
     position: absolute;
     top: 10px;
     right: 12px;
-    background-color: var(--acento-semantica);
-    color: var(--texto-principal);
     font-size: 10px;
     font-weight: bold;
     padding: 4px 8px;
     border-radius: 6px;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge-similitud.alta  { background-color: var(--similitud-alta); }
+.badge-similitud.media { background-color: var(--similitud-media); }
+.badge-similitud.baja  { background-color: var(--similitud-baja); }
+
+
+/* ============================================================================
+   13. SPINNER DE CARGA DE LOTE
+   ============================================================================ */
+.spinner-lote {
+    text-align: center;
+    padding: 20px;
+    color: var(--texto-secundario);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 }
 
 
 /* ============================================================================
-   13. CORTINA DE DETALLE
+   14. DRAWER (MENÚ LATERAL)
+   ============================================================================ */
+.drawer {
+    position: fixed;
+    top: 0;
+    left: -300px;
+    width: 280px;
+    height: 100vh;
+    background-color: var(--fondo-tarjeta);
+    border-right: 1px solid var(--borde);
+    z-index: 60;
+    transition: left 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.drawer.abierto {
+    left: 0;
+}
+
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid var(--borde);
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.drawer-nav {
+    flex: 1;
+    padding: 8px;
+    overflow-y: auto;
+}
+
+.drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    color: var(--texto-principal);
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 13px;
+    transition: background var(--transicion);
+}
+
+.drawer-item:hover {
+    background-color: var(--fondo-input);
+}
+
+.drawer-item i {
+    width: 18px;
+    text-align: center;
+    color: var(--texto-secundario);
+}
+
+.drawer-footer {
+    padding: 16px;
+    border-top: 1px solid var(--borde);
+    text-align: center;
+    color: var(--texto-tenue);
+}
+
+.drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 55;
+    display: none;
+}
+
+.drawer-overlay.visible {
+    display: block;
+}
+
+
+/* ============================================================================
+   15. CORTINA DE DETALLE
    ============================================================================ */
 .cortina {
     position: fixed;
@@ -494,7 +643,7 @@ body[data-modo="semantico"] .pestana.activa {
 .cortina-tirador {
     width: 48px;
     height: 5px;
-    background-color: var(--borde);
+    background-color: var(--borde-suave);
     border-radius: 3px;
     margin: 0 auto 16px;
 }
@@ -533,6 +682,8 @@ body[data-modo="semantico"] .pestana.activa {
     justify-content: space-between;
     font-size: 12px;
     color: var(--texto-secundario);
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .cortina-texto {
@@ -549,8 +700,35 @@ body[data-modo="semantico"] .pestana.activa {
 
 
 /* ============================================================================
-   14. BOTONES
+   16. BOTONES
    ============================================================================ */
+.btn-primario {
+    background-color: var(--acento);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: opacity var(--transicion);
+}
+
+.btn-primario:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.btn-primario:disabled {
+    background-color: var(--fondo-input);
+    color: var(--texto-tenue);
+    cursor: not-allowed;
+}
+
 .botonera {
     display: flex;
     gap: 8px;
@@ -577,21 +755,21 @@ body[data-modo="semantico"] .pestana.activa {
 }
 
 .btn-volver:hover {
-    background-color: #334155;
+    background-color: var(--borde-suave);
 }
 
 .btn-copiar {
     background-color: var(--acento);
-    color: var(--fondo-principal);
+    color: #ffffff;
 }
 
 .btn-copiar:hover {
-    background-color: var(--acento-suave);
+    opacity: 0.9;
 }
 
 
 /* ============================================================================
-   15. ESTADOS (CARGANDO, VACÍO, ERROR)
+   17. ESTADOS (CARGANDO, VACÍO, ERROR)
    ============================================================================ */
 .estado-vacio {
     text-align: center;
@@ -605,6 +783,10 @@ body[data-modo="semantico"] .pestana.activa {
     padding: 40px 20px;
     color: var(--texto-secundario);
     font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 }
 
 .estado-error {
@@ -616,7 +798,7 @@ body[data-modo="semantico"] .pestana.activa {
 
 
 /* ============================================================================
-   16. RESPONSIVE (MÓVIL)
+   18. RESPONSIVE (MÓVIL)
    ============================================================================ */
 @media (max-width: 600px) {
     .contenedor {
@@ -624,31 +806,36 @@ body[data-modo="semantico"] .pestana.activa {
         gap: 10px;
     }
 
-    .logo {
-        font-size: 20px;
-    }
-
     .pestana {
-        font-size: 12px;
-        padding: 10px;
+        font-size: 11px;
+        padding: 8px 4px;
     }
 
     .grid-filtros {
         grid-template-columns: 1fr;
     }
 
-    .tarjeta-rubro {
-        font-size: 12px;
+    .dashboard {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .dashboard-fechas {
+        text-align: left;
     }
 
     .cortina-contenido {
         padding: 16px;
     }
+
+    .logo {
+        font-size: 18px;
+    }
 }
 
 
 /* ============================================================================
-   17. FOOTER
+   19. FOOTER
    ============================================================================ */
 footer {
     border-top: 1px solid var(--borde);
