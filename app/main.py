@@ -14,8 +14,15 @@ app.include_router(api_router)
 static_dir = Path(__file__).resolve().parent.parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
-# Ruta raíz: servir index.html
+# Ruta raíz: servir index.html SIN caché
 @app.get("/")
 async def root():
     index_path = Path(__file__).resolve().parent.parent / "templates" / "index.html"
-    return FileResponse(str(index_path))
+    return FileResponse(
+        str(index_path),
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )

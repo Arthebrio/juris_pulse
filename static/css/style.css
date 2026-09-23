@@ -93,6 +93,11 @@ body[data-modo="exacta"]    { --acento: var(--acento-exacta); }
     padding: 0;
 }
 
+html, body {
+    /* Desactiva el pull-to-refresh del navegador móvil */
+    overscroll-behavior-y: contain;
+}
+
 body {
     background-color: var(--fondo-principal);
     color: var(--texto-principal);
