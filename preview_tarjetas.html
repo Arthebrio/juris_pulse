@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview · Tooltip Resumen IA</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #020617;
+            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 22px;
+            color: #8b5cf6;
+        }
+
+        .intro {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 12px;
+            margin-bottom: 32px;
+        }
+
+        /* ============================================================
+           TARJETA (para contexto)
+           ============================================================ */
+        .seccion {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        .tarjeta {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-left: 5px solid #8b5cf6;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+
+        .tarjeta-top {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .tarjeta-reg {
+            font-size: 11px;
+            font-weight: bold;
+            color: #cbd5e1;
+        }
+
+        .tarjeta-tipo {
+            font-size: 12.5px;
+            font-weight: 800;
+            color: #f1f5f9;
+            text-align: center;
+        }
+
+        .tarjeta-materia {
+            font-size: 11px;
+            color: #94a3b8;
+            text-align: right;
+        }
+
+        .tarjeta-rubro {
+            font-size: 13px;
+            font-weight: bold;
+            color: #e2e8f0;
+            line-height: 1.45;
+            margin-bottom: 12px;
+        }
+
+        .tarjeta-bottom {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 12px;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        .tarjeta-resumen {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            padding: 4px 8px;
+            margin: -4px -8px;
+            border-radius: 6px;
+            transition: background 0.15s ease;
+        }
+
+        .tarjeta-resumen:hover {
+            background: #1e293b;
+        }
+
+        .tarjeta-fecha {
+            text-align: center;
+        }
+
+        .tarjeta-score {
+            text-align: right;
+            font-weight: bold;
+        }
+
+        /* ============================================================
+           TOOLTIP DE RESUMEN IA
+           ============================================================ */
+        .tooltip-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .tooltip-overlay.visible {
+            display: flex;
+        }
+
+        .tooltip {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-left: 5px solid #8b5cf6;
+            border-radius: 14px;
+            max-width: 460px;
+            width: 100%;
+            padding: 18px 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            animation: aparecerTooltip 0.22s ease;
+        }
+
+        @keyframes aparecerTooltip {
+            from { opacity: 0; transform: scale(0.96) translateY(8px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .tooltip-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .tooltip-titulo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 900;
+            color: #f1f5f9;
+            letter-spacing: 0.02em;
+        }
+
+        .tooltip-titulo i {
+            font-size: 15px;
+        }
+
+        .tooltip-cerrar {
+            background: transparent;
+            border: none;
+            color: #64748b;
+            font-size: 15px;
+            cursor: pointer;
+            padding: 4px;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .tooltip-cerrar:hover {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+
+        .tooltip-texto {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #e2e8f0;
+            text-align: justify;
+            hyphens: auto;
+        }
+
+        /* Nota explicativa */
+        .nota {
+            max-width: 720px;
+            margin: 40px auto 20px;
+            padding: 16px;
+            background: #0f172a;
+            border-left: 3px solid #8b5cf6;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #94a3b8;
+            line-height: 1.7;
+        }
+
+        .nota strong { color: #a78bfa; }
+    </style>
+</head>
+<body>
+
+    <h1>Preview · Tooltip Resumen IA</h1>
+    <p class="intro">Clic en "Resumen IA" para ver el tooltip</p>
+
+    <div class="seccion">
+        <div class="tarjeta">
+            <div class="tarjeta-top">
+                <div class="tarjeta-reg">📍 REG: 2032635</div>
+                <div class="tarjeta-tipo">⚖️ Jurisprudencia</div>
+                <div class="tarjeta-materia">📘 Administrativa</div>
+            </div>
+            <div class="tarjeta-rubro">
+                TRANSPORTE PARA EL ESTADO DE BAJA CALIFORNIA SUR. LOS ARTÍCULOS 6o., 47, 47 BIS Y 47 TER DEL REGLAMENTO DE LA LEY RELATIVA CONSTITUYEN UN SISTEMA NORMATIVO QUE REGULA LA ACTIVIDAD DE TRANSPORTE TURÍSTICO LOCAL, SUJETO A UN PERMISO EVENTUAL.
+            </div>
+            <div class="tarjeta-bottom">
+                <div class="tarjeta-resumen" onclick="abrirTooltip()">🤖 Resumen IA</div>
+                <div class="tarjeta-fecha">📅 Publicada el 11 sep 2026</div>
+                <div class="tarjeta-score">9.8</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOOLTIP -->
+    <div class="tooltip-overlay" id="tooltipOverlay" onclick="cerrarFuera(event)">
+        <div class="tooltip">
+            <div class="tooltip-header">
+                <div class="tooltip-titulo">
+                    🤖 Resumen IA
+                </div>
+                <button class="tooltip-cerrar" onclick="cerrarTooltip()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="tooltip-texto">
+                El Reglamento de la Ley de Transporte para el Estado de Baja California Sur establece, a través de sus artículos 6o., 47, 47 BIS y 47 TER, un sistema normativo que regula la actividad de transporte turístico local. Este sistema se estructura en torno a un permiso eventual que deben obtener los prestadores de dicho servicio, configurando un marco jurídico completo que abarca desde la definición de la actividad hasta las condiciones específicas para su ejercicio, incluyendo los requisitos que deben cumplir los permisionarios.
+            </div>
+        </div>
+    </div>
+
+    <div class="nota">
+        <strong>💡 Lo que estás viendo:</strong><br><br>
+        • <strong>Cuadro sencillo y compacto</strong> centrado en la pantalla.<br>
+        • <strong>Borde izquierdo de 5px con color del modo</strong> (violeta), igual que las tarjetas.<br>
+        • <strong>Título en blanco</strong> con robotito natural (emoji).<br>
+        • <strong>X arriba a la derecha</strong> para cerrar (pequeña, discreta).<br>
+        • <strong>Sin rubro, sin REG, sin botones al pie.</strong> El usuario ya viene de la tesis.<br>
+        • <strong>Texto en un solo párrafo seguido</strong>, justificado, tamaño 14px, line-height 1.7.<br>
+        • <strong>Cerrar:</strong> X, clic fuera, o tecla Esc.
+    </div>
+
+    <script>
+        function abrirTooltip() {
+            document.getElementById('tooltipOverlay').classList.add('visible');
+        }
+
+        function cerrarTooltip() {
+            document.getElementById('tooltipOverlay').classList.remove('visible');
+        }
+
+        function cerrarFuera(e) {
+            if (e.target.id === 'tooltipOverlay') {
+                cerrarTooltip();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                cerrarTooltip();
+            }
+        });
+    </script>
+
+</body>
+</html>

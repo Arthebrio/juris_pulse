@@ -14,7 +14,7 @@
     <!-- ==================================================================
          [BLOQUE 2] CSS PROPIO
          ================================================================== -->
-    <link rel="stylesheet" href="/static/css/style.css?v=3.1.2">
+    <link rel="stylesheet" href="/static/css/style.css?v=3.2.0">
 </head>
 <body data-modo="explorar">
 
@@ -211,7 +211,7 @@
         </nav>
 
         <div class="drawer-footer">
-            <small>Versión 3.1 · 2026</small>
+            <small>Versión 3.2.0 · 2026</small>
         </div>
     </aside>
 
@@ -251,6 +251,24 @@
         </div>
     </div>
 
+        <!-- ==================================================================
+         [BLOQUE 12-BIS] TOOLTIP DE RESUMEN IA
+         Se abre al hacer clic en "🤖 Resumen IA" de una tarjeta.
+         ================================================================== -->
+    <div class="tooltip-overlay" id="tooltipOverlay">
+        <div class="tooltip">
+            <div class="tooltip-header">
+                <div class="tooltip-titulo">🤖 Resumen IA</div>
+                <button class="tooltip-cerrar" id="btnCerrarTooltip" aria-label="Cerrar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="tooltip-texto" id="tooltipTexto">
+                Cargando...
+            </div>
+        </div>
+    </div>
+
     <!-- ==================================================================
          [BLOQUE 13] FOOTER
          ================================================================== -->
@@ -258,10 +276,19 @@
         © 2026 JURIS_PULSE · Consulta Quirúrgica
     </footer>
 
+        <!-- ==================================================================
+         [BLOQUE 13-BIS] BOTÓN FLOTANTE "REGRESAR ARRIBA"
+         Aparece al hacer scroll. Sube suavemente al inicio.
+         ================================================================== -->
+    <button id="btnSubir" class="btn-subir" aria-label="Regresar arriba">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+
     <!-- ==================================================================
          [BLOQUE 14] SCRIPT PRINCIPAL
          ================================================================== -->
-    <script src="/static/js/script.js?v=3.1.2" defer></script>
+    <script src="/static/js/script.js?v=3.2.0" defer></script>
 
 </body>
 </html>

@@ -1,5 +1,5 @@
 /* ============================================================================
-   🚗 JURIS_PULSE - SCRIPT PRINCIPAL v3.1
+   🚗 JURIS_PULSE - SCRIPT PRINCIPAL v3.1.7
    ============================================================================
    Bloques:
      1.  Estado global
@@ -27,36 +27,24 @@
    1. ESTADO GLOBAL
    ============================================================================ */
 const AppState = {
-    // Corpus completo (índice ligero, sin resumen_ia)
     todasLasTesis: [],
-
-    // Datos del dashboard
     stats: { total: 0, fecha_min: null, fecha_max: null, fecha_max_texto: null },
+    modoActual: 'explorar',
 
-    // Modo activo
-    modoActual: 'explorar',       // 'explorar' | 'preguntar' | 'exacta'
+    explorarFiltradas: [],
+    explorarVisibles: 0,
 
-    // --- Estado de EXPLORAR ---
-    explorarFiltradas: [],        // corpus filtrado por tipo+materia
-    explorarVisibles: 0,          // cuántas tarjetas se están mostrando
-
-    // --- Estado de PREGUNTAR ---
     preguntarConsulta: '',
-    preguntarResultados: [],      // resultados semánticos crudos del backend
-    preguntarFiltrados: [],       // después de filtros locales
-    preguntarPaginaActual: 1,     // no usado (los semánticos se traen todos de una)
+    preguntarResultados: [],
+    preguntarFiltrados: [],
 
-    // --- Estado de EXACTA ---
     exactaConsulta: '',
     exactaResultados: [],
     exactaTotal: 0,
     exactaOffset: 0,
     exactaLoteSize: 100,
 
-    // Cache de resúmenes ya hidratados
     cacheResumenes: {},
-
-    // Cortina
     registroActual: null
 };
 
@@ -65,31 +53,25 @@ const AppState = {
    2. REFERENCIAS AL DOM
    ============================================================================ */
 const DOM = {
-    // Header
     header: document.getElementById('header'),
     logo: document.getElementById('logo'),
     btnHamburguesa: document.getElementById('btnHamburguesa'),
     btnTema: document.getElementById('btnTema'),
 
-    // Pestañas
     pestanaExplorar: document.getElementById('pestanaExplorar'),
     pestanaPreguntar: document.getElementById('pestanaPreguntar'),
     pestanaExacta: document.getElementById('pestanaExacta'),
 
-    // Dashboard
     dashTotal: document.getElementById('dashTotal'),
     dashRango: document.getElementById('dashRango'),
 
-    // Paneles
     panelExplorar: document.getElementById('panelExplorar'),
     panelPreguntar: document.getElementById('panelPreguntar'),
     panelExacta: document.getElementById('panelExacta'),
 
-    // Explorar
     explorarTipo: document.getElementById('explorarTipo'),
     explorarMateria: document.getElementById('explorarMateria'),
 
-    // Preguntar
     preguntarTexto: document.getElementById('preguntarTexto'),
     btnPreguntar: document.getElementById('btnPreguntar'),
     preguntarFiltros: document.getElementById('preguntarFiltros'),
@@ -97,7 +79,6 @@ const DOM = {
     preguntarMateria: document.getElementById('preguntarMateria'),
     preguntarAyuda: document.getElementById('preguntarAyuda'),
 
-    // Exacta
     exactaTexto: document.getElementById('exactaTexto'),
     btnExacta: document.getElementById('btnExacta'),
     exactaFiltros: document.getElementById('exactaFiltros'),
@@ -105,16 +86,14 @@ const DOM = {
     exactaMateria: document.getElementById('exactaMateria'),
     exactaAyuda: document.getElementById('exactaAyuda'),
 
-    // Listado
     listadoContainer: document.getElementById('listadoContainer'),
     spinnerLote: document.getElementById('spinnerLote'),
+    btnSubir: document.getElementById('btnSubir'),
 
-    // Drawer
     drawer: document.getElementById('drawer'),
     drawerOverlay: document.getElementById('drawerOverlay'),
     btnCerrarDrawer: document.getElementById('btnCerrarDrawer'),
 
-    // Cortina
     cortinaDetalle: document.getElementById('cortinaDetalle'),
     detBadgeTipo: document.getElementById('detBadgeTipo'),
     detBadgeMateria: document.getElementById('detBadgeMateria'),
@@ -123,7 +102,10 @@ const DOM = {
     detFecha: document.getElementById('detFecha'),
     detTextoContenedor: document.getElementById('detTextoContenedor'),
     btnCerrarCortina: document.getElementById('btnCerrarCortina'),
-    btnCopiarTexto: document.getElementById('btnCopiarTexto')
+    btnCopiarTexto: document.getElementById('btnCopiarTexto'),
+    tooltipOverlay: document.getElementById('tooltipOverlay'),
+    tooltipTexto: document.getElementById('tooltipTexto'),
+    btnCerrarTooltip: document.getElementById('btnCerrarTooltip')
 };
 
 
@@ -145,6 +127,19 @@ function formatearFechaLarga(fechaStr) {
         return fecha.toLocaleDateString('es-ES', {
             day: 'numeric', month: 'long', year: 'numeric'
         });
+    } catch (e) {
+        return fechaStr;
+    }
+}
+
+function formatearFechaCorta(fechaStr) {
+    if (!fechaStr) return 'Sin fecha';
+    try {
+        const fecha = new Date(fechaStr + 'T12:00:00');
+        if (isNaN(fecha)) return fechaStr;
+        const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun',
+                       'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        return `${fecha.getDate()} ${meses[fecha.getMonth()]} ${fecha.getFullYear()}`;
     } catch (e) {
         return fechaStr;
     }
@@ -174,7 +169,6 @@ function cargarTema() {
             aplicarTema(guardado);
             return;
         }
-        // Si no hay preferencia guardada, usar la del SO
         const prefiereClaro = window.matchMedia('(prefers-color-scheme: light)').matches;
         aplicarTema(prefiereClaro ? 'claro' : 'oscuro');
     } catch (e) {
@@ -229,16 +223,21 @@ function manejarScrollHeader() {
     const y = window.scrollY;
 
     if (y > 100 && y > ultimoScrollY) {
-        // Scroll hacia abajo → compactar
         if (DOM.header) DOM.header.classList.add('compacto');
     } else if (y < ultimoScrollY || y < 50) {
-        // Scroll hacia arriba → expandir
         if (DOM.header) DOM.header.classList.remove('compacto');
     }
 
-    ultimoScrollY = y;
+    // Mostrar/ocultar el botón "Regresar arriba"
+    if (DOM.btnSubir) {
+        if (y > 400) {
+            DOM.btnSubir.classList.add('visible');
+        } else {
+            DOM.btnSubir.classList.remove('visible');
+        }
+    }
 
-    // Detectar si el usuario está cerca del final → cargar siguiente lote
+    ultimoScrollY = y;
     detectarScrollInfinito();
 }
 
@@ -253,10 +252,8 @@ function cambiarPestana(nuevoModo) {
     log(`Cambiando pestaña: ${AppState.modoActual} → ${nuevoModo}`);
     AppState.modoActual = nuevoModo;
 
-    // Cambiar el atributo del body (afecta el color de acento)
     document.body.setAttribute('data-modo', nuevoModo);
 
-    // Actualizar clases activas
     [DOM.pestanaExplorar, DOM.pestanaPreguntar, DOM.pestanaExacta].forEach(p => {
         if (p) p.classList.remove('activa');
     });
@@ -267,12 +264,10 @@ function cambiarPestana(nuevoModo) {
     }[nuevoModo];
     if (activa) activa.classList.add('activa');
 
-    // Mostrar/ocultar paneles
     if (DOM.panelExplorar) DOM.panelExplorar.style.display = nuevoModo === 'explorar' ? 'flex' : 'none';
     if (DOM.panelPreguntar) DOM.panelPreguntar.style.display = nuevoModo === 'preguntar' ? 'flex' : 'none';
     if (DOM.panelExacta) DOM.panelExacta.style.display = nuevoModo === 'exacta' ? 'flex' : 'none';
 
-    // Restaurar la vista del listado según la pestaña
     if (nuevoModo === 'explorar') {
         renderizarExplorar();
     } else if (nuevoModo === 'preguntar') {
@@ -289,7 +284,6 @@ function cambiarPestana(nuevoModo) {
         }
     }
 
-    // Hash en URL para deep linking
     window.location.hash = nuevoModo;
 }
 
@@ -343,10 +337,7 @@ async function cargarIndice() {
         AppState.todasLasTesis = data.tesis;
         log(`Índice cargado: ${AppState.todasLasTesis.length} tesis.`);
 
-        // Dashboard
         actualizarDashboard(AppState.todasLasTesis.length);
-
-        // Renderizar Explorar
         renderizarExplorar();
     } catch (error) {
         log(`Error al cargar índice: ${error.message}`, 'error');
@@ -387,14 +378,12 @@ function detectarScrollInfinito() {
     const scrollY = window.scrollY + window.innerHeight;
     const alturaTotal = document.body.offsetHeight;
 
-    // Si estamos a 600px del final, dispara la carga del siguiente lote
     if (alturaTotal - scrollY < 600) {
         if (AppState.modoActual === 'explorar') {
             cargarMasExplorar();
         } else if (AppState.modoActual === 'exacta') {
             cargarMasExacta();
         }
-        // Preguntar no usa scroll infinito (solo trae top N)
     }
 }
 
@@ -441,14 +430,6 @@ async function hidratarResumenes(listaTesis) {
             for (const [reg, resumen] of Object.entries(data.resumenes)) {
                 AppState.cacheResumenes[parseInt(reg, 10)] = resumen || '';
             }
-
-            // Actualizar el DOM de tarjetas ya renderizadas
-            for (const [reg, resumen] of Object.entries(data.resumenes)) {
-                const el = DOM.listadoContainer?.querySelector(
-                    `[data-registro="${reg}"] .btn-resumen`
-                );
-                if (el) el.dataset.resumen = resumen || 'Sin resumen';
-            }
         } catch (error) {
             log(`Error hidratando lote: ${error.message}`, 'warn');
         }
@@ -461,43 +442,31 @@ async function hidratarResumenes(listaTesis) {
    ============================================================================ */
 
 function construirTarjeta(t, opciones = {}) {
-    const claseBorde = t.tipo === 'Jurisprudencia' ? 'jurisprudencia' : 'aislada';
     const materiasStr = formatearMaterias(t.materia);
-    const fechaTxt = formatearFechaLarga(t.fecha_publicacion);
-    const resumenCache = AppState.cacheResumenes[t.registro_digital] || '';
+    const fechaCorta = formatearFechaCorta(t.fecha_publicacion);
+    const tipoIcono = t.tipo === 'Jurisprudencia' ? '⚖️' : '📄';
 
-    let badgeSimilitud = '';
+    // Score discreto: 0-1 → ~7.9-10.2 (×10 + 3, 1 decimal)
+    let scoreTxt = '';
     if (opciones.mostrarSimilitud && t.similitud !== undefined) {
-        const nivel = clasificarSimilitud(t.similitud);
-        badgeSimilitud = `<div class="badge-similitud ${nivel.clase}">${nivel.etiqueta}</div>`;
+        scoreTxt = (parseFloat(t.similitud) * 10 + 3).toFixed(1);
     }
 
     return `
-        <div class="tarjeta ${claseBorde}" data-registro="${t.registro_digital}">
-            ${badgeSimilitud}
-            <div class="tarjeta-meta">
-                <span>📌 REG: ${t.registro_digital}</span>
-                <span>${escapeHtml(t.tipo || 'Aislada')} · ${escapeHtml(materiasStr)}</span>
+        <div class="tarjeta" data-registro="${t.registro_digital}">
+            <div class="tarjeta-top">
+                <div class="tarjeta-reg">📍 REG: ${t.registro_digital}</div>
+                <div class="tarjeta-tipo">${tipoIcono} ${escapeHtml(t.tipo || 'Aislada')}</div>
+                <div class="tarjeta-materia">📘 ${escapeHtml(materiasStr)}</div>
             </div>
             <div class="tarjeta-rubro">${escapeHtml(t.rubro)}</div>
-            <div class="tarjeta-footer">
-                <span class="btn-resumen" data-resumen="${escapeHtml(resumenCache)}">
-                    <i class="fas fa-robot"></i> Resumen IA
-                </span>
-                <span class="fecha-publicacion">
-                    📅 Publicada el ${escapeHtml(fechaTxt)}
-                </span>
+            <div class="tarjeta-bottom">
+                <div class="tarjeta-resumen">🤖 Resumen IA</div>
+                <div class="tarjeta-fecha">📅 Publicada el ${escapeHtml(fechaCorta)}</div>
+                <div class="tarjeta-score">${scoreTxt}</div>
             </div>
         </div>
     `;
-}
-
-function clasificarSimilitud(score) {
-    // Umbrales iniciales (se calibrarán con datos reales)
-    const s = parseFloat(score);
-    if (s >= 0.55) return { clase: 'alta',  etiqueta: 'Alta' };
-    if (s >= 0.50) return { clase: 'media', etiqueta: 'Media' };
-    return { clase: 'baja', etiqueta: 'Baja' };
 }
 
 function renderizarTarjetas(lista, opciones = {}) {
@@ -523,7 +492,6 @@ function renderizarTarjetas(lista, opciones = {}) {
     DOM.listadoContainer.innerHTML = html;
     log(`${lista.length} tarjetas renderizadas.`);
 
-    // Hidratar resúmenes en background
     hidratarResumenes(lista);
 }
 
@@ -575,7 +543,6 @@ function cargarMasExplorar() {
             nuevas
         );
 
-        // Añadir al DOM sin borrar lo anterior
         const html = lote.map(t => construirTarjeta(t)).join('');
         DOM.listadoContainer.insertAdjacentHTML('beforeend', html);
 
@@ -584,7 +551,7 @@ function cargarMasExplorar() {
 
         cargandoLote = false;
         mostrarSpinnerLote(false);
-    }, 300);  // pequeño delay para que se sienta natural
+    }, 300);
 }
 
 
@@ -623,7 +590,6 @@ async function ejecutarPreguntar() {
         AppState.preguntarResultados = data.tesis || [];
         log(`${AppState.preguntarResultados.length} resultados semánticos.`);
 
-        // Mostrar filtros (ahora sí)
         if (DOM.preguntarFiltros) DOM.preguntarFiltros.style.display = 'grid';
         if (DOM.preguntarAyuda) DOM.preguntarAyuda.style.display = 'none';
 
@@ -658,7 +624,6 @@ function aplicarFiltrosPreguntar() {
     AppState.preguntarFiltrados = filtrados;
     actualizarDashboard(filtrados.length);
 
-    // Caso especial: filtro deja 0
     if (filtrados.length === 0 && AppState.preguntarResultados.length > 0) {
         DOM.listadoContainer.innerHTML = `
             <div class="mensaje-ayuda" style="text-align:center; padding: 30px 20px;">
@@ -743,18 +708,15 @@ async function ejecutarExacta(resetear = true) {
         AppState.exactaResultados = AppState.exactaResultados.concat(data.resultados || []);
         AppState.exactaOffset += AppState.exactaLoteSize;
 
-        // Mostrar filtros
         if (DOM.exactaFiltros) DOM.exactaFiltros.style.display = 'grid';
         if (DOM.exactaAyuda) DOM.exactaAyuda.style.display = 'none';
 
         if (resetear) {
             aplicarFiltrosExacta();
         } else {
-            // Solo añadir las nuevas tarjetas
             const nuevas = data.resultados || [];
             const html = nuevas.map(t => construirTarjeta(t)).join('');
             if (DOM.listadoContainer && html) {
-                // Quitar el mensaje de "sin resultados" si lo había
                 DOM.listadoContainer.insertAdjacentHTML('beforeend', html);
                 hidratarResumenes(nuevas);
             }
@@ -774,8 +736,6 @@ async function ejecutarExacta(resetear = true) {
 }
 
 function aplicarFiltrosExacta() {
-    // La búsqueda exacta ya trae el filtro aplicado desde el backend
-    // Aquí solo limpiamos y mostramos el resultado completo
     if (!DOM.listadoContainer) return;
 
     if (AppState.exactaResultados.length === 0) {
@@ -910,15 +870,14 @@ if (DOM.exactaMateria) DOM.exactaMateria.addEventListener('change', () => ejecut
 // --- Listado: clic en tarjeta o en "Resumen IA" ---
 if (DOM.listadoContainer) {
     DOM.listadoContainer.addEventListener('click', (e) => {
-        const btnResumen = e.target.closest('.btn-resumen');
+        const btnResumen = e.target.closest('.tarjeta-resumen');
         if (btnResumen) {
             e.stopPropagation();
-            const resumen = btnResumen.dataset.resumen;
-            if (resumen && resumen.trim() !== '') {
-                alert(`🤖 SÍNTESIS IA:\n\n${resumen}`);
-            } else {
-                alert('⏳ Resumen IA aún no disponible. Espera unos segundos.');
-            }
+            const tarjeta = btnResumen.closest('[data-registro]');
+            if (!tarjeta) return;
+            const reg = parseInt(tarjeta.dataset.registro, 10);
+            const resumen = AppState.cacheResumenes[reg];
+            abrirTooltipResumen(resumen);
             return;
         }
 
@@ -929,8 +888,37 @@ if (DOM.listadoContainer) {
     });
 }
 
+// --- Tooltip de Resumen IA ---
+function abrirTooltipResumen(texto) {
+    if (!DOM.tooltipOverlay || !DOM.tooltipTexto) return;
+
+    if (texto && texto.trim() !== '') {
+        DOM.tooltipTexto.innerText = texto;
+    } else {
+        DOM.tooltipTexto.innerText = '⏳ Resumen IA aún no disponible. Espera unos segundos.';
+    }
+    DOM.tooltipOverlay.classList.add('visible');
+}
+
+function cerrarTooltipResumen() {
+    if (DOM.tooltipOverlay) DOM.tooltipOverlay.classList.remove('visible');
+}
+
+if (DOM.tooltipOverlay) {
+    DOM.tooltipOverlay.addEventListener('click', (e) => {
+        if (e.target === DOM.tooltipOverlay) {
+            cerrarTooltipResumen();
+        }
+    });
+}
+
+if (DOM.btnCerrarTooltip) {
+    DOM.btnCerrarTooltip.addEventListener('click', cerrarTooltipResumen);
+}
+
 // --- Cortina ---
 if (DOM.btnCerrarCortina) DOM.btnCerrarCortina.addEventListener('click', cerrarCortina);
+
 if (DOM.btnCopiarTexto) {
     DOM.btnCopiarTexto.addEventListener('click', () => {
         const registro = AppState.registroActual;
@@ -940,28 +928,103 @@ if (DOM.btnCopiarTexto) {
             .find(x => x.registro_digital === registro);
         if (!t) return;
 
-        navigator.clipboard.writeText(construirTextoDetalle(t))
-            .then(() => {
-                DOM.btnCopiarTexto.innerHTML = '<i class="fas fa-check"></i> Copiado';
-                setTimeout(() => {
-                    DOM.btnCopiarTexto.innerHTML = '<i class="fas fa-copy"></i> Copiar Tesis';
-                }, 2000);
-            })
-            .catch(err => log(`Error al copiar: ${err}`, 'error'));
+        const texto = construirTextoDetalle(t);
+        abrirModalCopiar(texto);
     });
 }
 
-// --- Tecla ESC cierra drawer o cortina ---
+function abrirModalCopiar(texto) {
+    const overlay = document.createElement('div');
+    overlay.id = 'modalCopiar';
+    overlay.style.cssText = `
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.95);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+        gap: 12px;
+    `;
+
+    const instruccion = document.createElement('div');
+    instruccion.style.cssText = `
+        color: #f59e0b;
+        text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+        padding: 8px;
+    `;
+    instruccion.innerText = '✅ Texto seleccionado. Presiona Ctrl+C (o mantén presionado → Copiar en móvil).';
+
+    const textarea = document.createElement('textarea');
+    textarea.value = texto;
+    textarea.readOnly = true;
+    textarea.style.cssText = `
+        flex: 1;
+        width: 100%;
+        padding: 16px;
+        font-size: 13px;
+        font-family: 'Courier New', monospace;
+        line-height: 1.5;
+        background: #0f172a;
+        color: #e2e8f0;
+        border: 2px solid #f59e0b;
+        border-radius: 8px;
+        resize: none;
+        outline: none;
+    `;
+
+    const btnCerrar = document.createElement('button');
+    btnCerrar.innerText = 'Cerrar';
+    btnCerrar.style.cssText = `
+        padding: 14px;
+        font-size: 15px;
+        font-weight: bold;
+        background: #f59e0b;
+        color: #020617;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+    `;
+    btnCerrar.addEventListener('click', () => {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    });
+
+    overlay.appendChild(instruccion);
+    overlay.appendChild(textarea);
+    overlay.appendChild(btnCerrar);
+    document.body.appendChild(overlay);
+
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, texto.length);
+}
+
+// --- Tecla ESC cierra drawer, tooltip o cortina ---
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         cerrarDrawer();
+        cerrarTooltipResumen();
         if (DOM.cortinaDetalle && !DOM.cortinaDetalle.classList.contains('oculta')) {
             cerrarCortina();
         }
     }
 });
 
-// --- Scroll (header + scroll infinito) ---
+// --- Scroll (header compacto + scroll infinito) ---
+window.addEventListener('scroll', manejarScrollHeader, { passive: true });
+
+
+
+// --- Scroll ---
+
+// --- Botón "Regresar arriba" ---
+if (DOM.btnSubir) {
+    DOM.btnSubir.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
 window.addEventListener('scroll', manejarScrollHeader, { passive: true });
 
 
@@ -972,13 +1035,11 @@ document.addEventListener('DOMContentLoaded', () => {
     log('Aplicación iniciada.');
     cargarTema();
 
-    // Si la URL trae hash, ir directo a esa pestaña
     const hash = window.location.hash.replace('#', '');
     if (['explorar', 'preguntar', 'exacta'].includes(hash)) {
         cambiarPestana(hash);
     }
 
-    // Cargar datos
     cargarStats();
     cargarIndice();
 });
