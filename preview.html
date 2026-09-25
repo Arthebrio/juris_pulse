@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview · Afinar Búsqueda v2</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #020617;
+            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 22px;
+            color: #a78bfa;
+        }
+
+        .intro {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 12px;
+            margin-bottom: 32px;
+        }
+
+        .seccion {
+            max-width: 720px;
+            margin: 0 auto 40px;
+        }
+
+        .seccion-titulo {
+            font-size: 12px;
+            font-weight: bold;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 16px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        /* ============================================================
+           CAJA DE BÚSQUEDA
+           ============================================================ */
+        .caja-semantica {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .caja-semantica textarea,
+        .caja-semantica input {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 14px;
+            color: #e2e8f0;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        .caja-semantica input {
+            min-height: auto;
+        }
+
+        .btn-primario {
+            background: #8b5cf6;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* ============================================================
+           BLOQUE "AFINAR RESULTADOS" v2
+           ============================================================ */
+        .bloque-afinar {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            animation: aparecerBloque 0.28s ease;
+        }
+
+        @keyframes aparecerBloque {
+            from { opacity: 0; transform: translateY(-4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .bloque-afinar.preguntar { border-left: 3px solid #8b5cf6; }
+        .bloque-afinar.exacta    { border-left: 3px solid #06b6d4; }
+
+        /* Fila superior del bloque: título + botón limpiar */
+        .bloque-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .bloque-titulo {
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-limpiar {
+            background: transparent;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 6px 12px;
+            color: #f1f5f9;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .btn-limpiar:hover {
+            background: #1e293b;
+            border-color: #64748b;
+        }
+
+        /* Selectores resaltados con color del modo */
+        .grid-filtros {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .selector {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 10px;
+            padding: 12px;
+            color: #f1f5f9;
+            font-size: 13px;
+            font-weight: bold;
+            outline: none;
+            cursor: pointer;
+            font-family: inherit;
+            width: 100%;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        /* Borde grueso del color del modo */
+        .bloque-afinar.preguntar .selector { border-color: #8b5cf6; }
+        .bloque-afinar.preguntar .selector:hover {
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+
+        .bloque-afinar.exacta .selector { border-color: #06b6d4; }
+        .bloque-afinar.exacta .selector:hover {
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+        }
+
+        /* ============================================================
+           TARJETAS
+           ============================================================ */
+        .tarjeta {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-left: 5px solid #8b5cf6;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 8px;
+        }
+
+        .tarjeta.exacta { border-left-color: #06b6d4; }
+
+        .tarjeta-top {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .tarjeta-reg {
+            font-size: 11px;
+            font-weight: bold;
+            color: #cbd5e1;
+        }
+
+        .tarjeta-tipo {
+            font-size: 12.5px;
+            font-weight: 800;
+            color: #f1f5f9;
+            text-align: center;
+        }
+
+        .tarjeta-materia {
+            font-size: 11px;
+            color: #94a3b8;
+            text-align: right;
+        }
+
+        .tarjeta-rubro {
+            font-size: 13px;
+            font-weight: bold;
+            color: #e2e8f0;
+            line-height: 1.45;
+            margin-bottom: 12px;
+        }
+
+        .tarjeta-bottom {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 12px;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        .tarjeta-resumen {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .tarjeta-fecha {
+            text-align: center;
+        }
+
+        .tarjeta-score {
+            text-align: right;
+            font-weight: bold;
+        }
+
+        /* Nota */
+        .nota {
+            max-width: 720px;
+            margin: 40px auto 20px;
+            padding: 16px;
+            background: #0f172a;
+            border-left: 3px solid #8b5cf6;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #94a3b8;
+            line-height: 1.7;
+        }
+
+        .nota strong { color: #a78bfa; }
+    </style>
+</head>
+<body>
+
+    <h1>Preview · Afinar Búsqueda v2</h1>
+    <p class="intro">Botón "Limpiar" arriba a la derecha · selectores con borde grueso del color del modo</p>
+
+    <!-- ==================================================================
+         PREGUNTAR
+         ================================================================== -->
+    <div class="seccion">
+        <div class="seccion-titulo">Preguntar · con búsqueda activa</div>
+
+        <div class="caja-semantica">
+            <textarea>tortura</textarea>
+            <button class="btn-primario">
+                <i class="fas fa-search"></i> Buscar por significado
+            </button>
+        </div>
+
+        <div class="bloque-afinar preguntar">
+            <div class="bloque-header">
+                <div class="bloque-titulo">🎯 Afinar resultados</div>
+                <button class="btn-limpiar">
+                    <i class="fas fa-broom"></i> Limpiar búsqueda
+                </button>
+            </div>
+            <div class="grid-filtros">
+                <select class="selector">
+                    <option>📋 Todos los Tipos</option>
+                </select>
+                <select class="selector">
+                    <option>📚 Todas las Materias</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="tarjeta">
+            <div class="tarjeta-top">
+                <div class="tarjeta-reg">📍 REG: 2009773</div>
+                <div class="tarjeta-tipo">⚖️ Jurisprudencia</div>
+                <div class="tarjeta-materia">📘 Constitucional</div>
+            </div>
+            <div class="tarjeta-rubro">
+                TORTURA. SUS ELEMENTOS CONSTITUTIVOS.
+            </div>
+            <div class="tarjeta-bottom">
+                <div class="tarjeta-resumen">🤖 Resumen IA</div>
+                <div class="tarjeta-fecha">📅 Publicada el 20 feb 2015</div>
+                <div class="tarjeta-score">9.6</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================================================================
+         EXACTA
+         ================================================================== -->
+    <div class="seccion">
+        <div class="seccion-titulo">Exacta · con búsqueda activa</div>
+
+        <div class="caja-semantica">
+            <input type="text" value="amparo indirecto">
+            <button class="btn-primario" style="background:#06b6d4;">
+                <i class="fas fa-search"></i> Buscar
+            </button>
+        </div>
+
+        <div class="bloque-afinar exacta">
+            <div class="bloque-header">
+                <div class="bloque-titulo">🎯 Afinar resultados</div>
+                <button class="btn-limpiar">
+                    <i class="fas fa-broom"></i> Limpiar búsqueda
+                </button>
+            </div>
+            <div class="grid-filtros">
+                <select class="selector">
+                    <option>📋 Todos los Tipos</option>
+                </select>
+                <select class="selector">
+                    <option>📚 Todas las Materias</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="tarjeta exacta">
+            <div class="tarjeta-top">
+                <div class="tarjeta-reg">📍 REG: 2032636</div>
+                <div class="tarjeta-tipo">📄 Aislada</div>
+                <div class="tarjeta-materia">📘 Común</div>
+            </div>
+            <div class="tarjeta-rubro">
+                IMPROCEDENCIA DEL AMPARO INDIRECTO. NO SE ACTUALIZA DE MANERA MANIFIESTA E INDUDABLE LA CAUSA PREVISTA EN EL ARTÍCULO 61, FRACCIÓN XXIII, DE LA LEY DE AMPARO...
+            </div>
+            <div class="tarjeta-bottom">
+                <div class="tarjeta-resumen">🤖 Resumen IA</div>
+                <div class="tarjeta-fecha">📅 Publicada el 18 sep 2026</div>
+                <div class="tarjeta-score"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="nota">
+        <strong>💡 Cambios de esta versión:</strong><br><br>
+        • <strong>Botón "Limpiar búsqueda"</strong> movido al mismo renglón que el título, alineado a la derecha.<br>
+        • <strong>Ambos con texto blanco:</strong> "🎯 Afinar resultados" y "🧹 Limpiar búsqueda".<br>
+        • <strong>Selectores con borde grueso (2px)</strong> del color del modo (violeta o cian).<br>
+        • <strong>Hover:</strong> aparece un halo del color del modo alrededor del selector.<br>
+        • El <strong>borde izquierdo del bloque</strong> sigue siendo del color del modo.
+    </div>
+
+</body>
+</html>

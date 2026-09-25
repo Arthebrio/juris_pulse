@@ -268,6 +268,9 @@ function cambiarPestana(nuevoModo) {
     if (DOM.panelPreguntar) DOM.panelPreguntar.style.display = nuevoModo === 'preguntar' ? 'flex' : 'none';
     if (DOM.panelExacta) DOM.panelExacta.style.display = nuevoModo === 'exacta' ? 'flex' : 'none';
 
+    // Mostrar/ocultar el dashboard según el contexto de cada pestaña
+    actualizarDashboardPorPestana();
+
     if (nuevoModo === 'explorar') {
         renderizarExplorar();
     } else if (nuevoModo === 'preguntar') {
@@ -306,6 +309,39 @@ function mostrarEstadoInicial(modo) {
 
 function actualizarDashboard(total) {
     if (DOM.dashTotal) DOM.dashTotal.innerText = total.toLocaleString('es-MX');
+}
+
+/**
+ * Ajusta la visibilidad y el número del dashboard según la pestaña activa.
+ * - Explorar: siempre visible (total del corpus filtrado).
+ * - Preguntar: visible solo si hay búsqueda activa.
+ * - Exacta: visible solo si hay búsqueda activa.
+ */
+function actualizarDashboardPorPestana() {
+    const dashboard = document.getElementById('dashboard');
+    if (!dashboard) return;
+
+    const modo = AppState.modoActual;
+
+    if (modo === 'explorar') {
+        dashboard.style.display = 'flex';
+        actualizarDashboard(AppState.explorarFiltradas.length);
+        pintarRangoFechas();
+    } else if (modo === 'preguntar') {
+        if (AppState.preguntarResultados.length > 0) {
+            dashboard.style.display = 'flex';
+            actualizarDashboard(AppState.preguntarFiltrados.length);
+        } else {
+            dashboard.style.display = 'none';
+        }
+    } else if (modo === 'exacta') {
+        if (AppState.exactaResultados.length > 0) {
+            dashboard.style.display = 'flex';
+            actualizarDashboard(AppState.exactaTotal);
+        } else {
+            dashboard.style.display = 'none';
+        }
+    }
 }
 
 function pintarRangoFechas() {
