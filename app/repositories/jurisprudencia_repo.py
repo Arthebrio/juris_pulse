@@ -129,8 +129,8 @@ class JurisprudenciaRepository:
         finally:
             conn.close()
 
-        # ------------------------------------------------------------------------
-    # MÉTODO 1-QUINQUIES: BÚSQUEDA EXACTA (literal)
+           # ------------------------------------------------------------------------
+    # MÉTODO 1-QUINQUIES: BÚSQUEDA EXACTA (literal, insensible a acentos)
     # ------------------------------------------------------------------------
     def buscar_exacta(
         self,
@@ -141,8 +141,9 @@ class JurisprudenciaRepository:
         limit: int = 100,
     ) -> Dict[str, Any]:
         """
-        Búsqueda literal (ILIKE) en rubro y resumen_ia.
-        Ignora mayúsculas/minúsculas. No tolera errores ortográficos.
+        Búsqueda literal (ILIKE + unaccent) en rubro y resumen_ia.
+        Ignora mayúsculas/minúsculas Y acentos.
+        Ejemplo: "aplicacion" encuentra "aplicación" y viceversa.
 
         Filtros opcionales:
           - tipo: 'Jurisprudencia' | 'Aislada' | None
@@ -155,16 +156,19 @@ class JurisprudenciaRepository:
           { total: int, resultados: [ {...}, ... ] }
         """
         logger.info(
-            f"🔤 Búsqueda exacta: '{consulta}' "
+            f"🔤 Búsqueda exacta (sin acentos): '{consulta}' "
             f"(tipo={tipo}, materia={materia}, offset={offset}, limit={limit})"
         )
         conn = self._get_connection()
         try:
             cur = conn.cursor(cursor_factory=RealDictCursor)
 
-            # Construcción dinámica del WHERE
+            # Construcción dinámica del WHERE con unaccent en ambos lados
             patron = f"%{consulta}%"
-            condiciones = ["(rubro ILIKE %s OR resumen_ia ILIKE %s)"]
+            condiciones = [
+                "(unaccent(rubro) ILIKE unaccent(%s) "
+                "OR unaccent(resumen_ia) ILIKE unaccent(%s))"
+            ]
             params: list = [patron, patron]
 
             if tipo:
@@ -214,7 +218,7 @@ class JurisprudenciaRepository:
             return {"total": 0, "resultados": []}
         finally:
             conn.close()
-
+            
     # ------------------------------------------------------------------------
     # MÉTODO 1-QUATER: ESTADÍSTICAS DEL CORPUS
     # ------------------------------------------------------------------------

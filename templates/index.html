@@ -14,7 +14,7 @@
     <!-- ==================================================================
          [BLOQUE 2] CSS PROPIO
          ================================================================== -->
-    <link rel="stylesheet" href="/static/css/style.css?v=3.2.1">
+    <link rel="stylesheet" href="/static/css/style.css?v=3.2.3">
 </head>
 <body data-modo="explorar">
 
@@ -93,7 +93,7 @@
             </div>
         </section>
 
-        <!-- ==================================================================
+            <!-- ==================================================================
              [BLOQUE 7] PESTAÑA: PREGUNTAR
              ================================================================== -->
         <section class="panel" id="panelPreguntar" style="display:none;">
@@ -107,22 +107,30 @@
                 </button>
             </div>
 
-            <div class="grid-filtros filtros-post" id="preguntarFiltros" style="display:none;">
-                <select id="preguntarTipo" class="selector">
-                    <option value="todas">📋 Todos los Tipos</option>
-                    <option value="Jurisprudencia">⚖️ Jurisprudencia</option>
-                    <option value="Aislada">📄 Aislada</option>
-                </select>
+            <div class="bloque-afinar preguntar" id="preguntarFiltros" style="display:none;">
+                <div class="bloque-header">
+                    <div class="bloque-titulo">🎯 Afinar resultados</div>
+                    <button class="btn-limpiar" id="btnLimpiarPreguntar">
+                        <i class="fas fa-broom"></i> Limpiar búsqueda
+                    </button>
+                </div>
+                <div class="grid-filtros">
+                    <select id="preguntarTipo" class="selector">
+                        <option value="todas">📋 Todos los Tipos</option>
+                        <option value="Jurisprudencia">⚖️ Jurisprudencia</option>
+                        <option value="Aislada">📄 Aislada</option>
+                    </select>
 
-                <select id="preguntarMateria" class="selector">
-                    <option value="todas">📚 Todas las Materias</option>
-                    <option value="Penal">Penal</option>
-                    <option value="Civil">Civil</option>
-                    <option value="Administrativa">Administrativa</option>
-                    <option value="Constitucional">Constitucional</option>
-                    <option value="Laboral">Laboral</option>
-                    <option value="Común">Común</option>
-                </select>
+                    <select id="preguntarMateria" class="selector">
+                        <option value="todas">📚 Todas las Materias</option>
+                        <option value="Penal">Penal</option>
+                        <option value="Civil">Civil</option>
+                        <option value="Administrativa">Administrativa</option>
+                        <option value="Constitucional">Constitucional</option>
+                        <option value="Laboral">Laboral</option>
+                        <option value="Común">Común</option>
+                    </select>
+                </div>
             </div>
         </section>
 
@@ -142,25 +150,32 @@
                 </button>
             </div>
 
-            <div class="grid-filtros filtros-post" id="exactaFiltros" style="display:none;">
-                <select id="exactaTipo" class="selector">
-                    <option value="todas">📋 Todos los Tipos</option>
-                    <option value="Jurisprudencia">⚖️ Jurisprudencia</option>
-                    <option value="Aislada">📄 Aislada</option>
-                </select>
+            <div class="bloque-afinar exacta" id="exactaFiltros" style="display:none;">
+                <div class="bloque-header">
+                    <div class="bloque-titulo">🎯 Afinar resultados</div>
+                    <button class="btn-limpiar" id="btnLimpiarExacta">
+                        <i class="fas fa-broom"></i> Limpiar búsqueda
+                    </button>
+                </div>
+                <div class="grid-filtros">
+                    <select id="exactaTipo" class="selector">
+                        <option value="todas">📋 Todos los Tipos</option>
+                        <option value="Jurisprudencia">⚖️ Jurisprudencia</option>
+                        <option value="Aislada">📄 Aislada</option>
+                    </select>
 
-                <select id="exactaMateria" class="selector">
-                    <option value="todas">📚 Todas las Materias</option>
-                    <option value="Penal">Penal</option>
-                    <option value="Civil">Civil</option>
-                    <option value="Administrativa">Administrativa</option>
-                    <option value="Constitucional">Constitucional</option>
-                    <option value="Laboral">Laboral</option>
-                    <option value="Común">Común</option>
-                </select>
+                    <select id="exactaMateria" class="selector">
+                        <option value="todas">📚 Todas las Materias</option>
+                        <option value="Penal">Penal</option>
+                        <option value="Civil">Civil</option>
+                        <option value="Administrativa">Administrativa</option>
+                        <option value="Constitucional">Constitucional</option>
+                        <option value="Laboral">Laboral</option>
+                        <option value="Común">Común</option>
+                    </select>
+                </div>
             </div>
         </section>
-
         <!-- ==================================================================
              [BLOQUE 9] LISTADO DE RESULTADOS
              ================================================================== -->
@@ -211,7 +226,7 @@
         </nav>
 
         <div class="drawer-footer">
-            <small>Versión 3.2.1 · 2026</small>
+            <small>Versión 3.2.3 · 2026</small>
         </div>
     </aside>
 
@@ -288,7 +303,7 @@
     <!-- ==================================================================
          [BLOQUE 14] SCRIPT PRINCIPAL
          ================================================================== -->
-    <script src="/static/js/script.js?v=3.2.1" defer></script>
+    <script src="/static/js/script.js?v=3.2.3" defer></script>
 
 </body>
 </html>

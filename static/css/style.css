@@ -413,7 +413,77 @@ body[data-modo="exacta"]    .pestana.activa { background-color: var(--acento-exa
     border-radius: 6px;
     transition: border-color var(--transicion);
 }
+/* ============================================================================
+   10-BIS. BLOQUE "AFINAR RESULTADOS" (Preguntar / Exacta)
+   ============================================================================ */
+.bloque-afinar {
+    background-color: var(--fondo-tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: aparecerBloque 0.28s ease;
+}
 
+@keyframes aparecerBloque {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.bloque-afinar.preguntar { border-left: 3px solid var(--acento-preguntar); }
+.bloque-afinar.exacta    { border-left: 3px solid var(--acento-exacta); }
+
+.bloque-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.bloque-titulo {
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    color: var(--texto-principal);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-limpiar {
+    background: transparent;
+    border: 1px solid var(--borde-suave);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: var(--texto-principal);
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background var(--transicion), border-color var(--transicion);
+    white-space: nowrap;
+}
+
+.btn-limpiar:hover {
+    background-color: var(--fondo-input);
+    border-color: var(--texto-secundario);
+}
+
+/* Selectores con borde grueso del color del modo */
+.bloque-afinar.preguntar .selector { border: 2px solid var(--acento-preguntar); }
+.bloque-afinar.preguntar .selector:hover {
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+
+.bloque-afinar.exacta .selector { border: 2px solid var(--acento-exacta); }
+.bloque-afinar.exacta .selector:hover {
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+}
 
 /* ============================================================================
    11. LISTADO DE TARJETAS

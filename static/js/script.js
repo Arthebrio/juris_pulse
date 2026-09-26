@@ -76,6 +76,7 @@ const DOM = {
     btnPreguntar: document.getElementById('btnPreguntar'),
     preguntarFiltros: document.getElementById('preguntarFiltros'),
     preguntarTipo: document.getElementById('preguntarTipo'),
+    btnLimpiarPreguntar: document.getElementById('btnLimpiarPreguntar'),
     preguntarMateria: document.getElementById('preguntarMateria'),
     preguntarAyuda: document.getElementById('preguntarAyuda'),
 
@@ -83,6 +84,7 @@ const DOM = {
     btnExacta: document.getElementById('btnExacta'),
     exactaFiltros: document.getElementById('exactaFiltros'),
     exactaTipo: document.getElementById('exactaTipo'),
+    btnLimpiarExacta: document.getElementById('btnLimpiarExacta'),
     exactaMateria: document.getElementById('exactaMateria'),
     exactaAyuda: document.getElementById('exactaAyuda'),
 
@@ -626,7 +628,7 @@ async function ejecutarPreguntar() {
         AppState.preguntarResultados = data.tesis || [];
         log(`${AppState.preguntarResultados.length} resultados semánticos.`);
 
-        if (DOM.preguntarFiltros) DOM.preguntarFiltros.style.display = 'grid';
+        if (DOM.preguntarFiltros) DOM.preguntarFiltros.style.display = 'flex';
         if (DOM.preguntarAyuda) DOM.preguntarAyuda.style.display = 'none';
 
         aplicarFiltrosPreguntar();
@@ -676,14 +678,8 @@ function aplicarFiltrosPreguntar() {
         return;
     }
 
-    const encabezado = filtrados.length > 0
-        ? `🧠 ${filtrados.length} tesis relevantes para: «${AppState.preguntarConsulta}»`
-        : '';
-
-    renderizarTarjetas(filtrados, {
-        mostrarSimilitud: true,
-        encabezado
-    });
+    // Sin encabezado redundante: solo las tarjetas
+    renderizarTarjetas(filtrados, { mostrarSimilitud: true });
 }
 
 function limpiarFiltrosPreguntar() {
@@ -692,6 +688,26 @@ function limpiarFiltrosPreguntar() {
     aplicarFiltrosPreguntar();
 }
 
+function limpiarBusquedaPreguntar() {
+    // Vaciar la caja de texto
+    if (DOM.preguntarTexto) DOM.preguntarTexto.value = '';
+    AppState.preguntarConsulta = '';
+    AppState.preguntarResultados = [];
+    AppState.preguntarFiltrados = [];
+
+    // Resetear filtros
+    if (DOM.preguntarTipo) DOM.preguntarTipo.value = 'todas';
+    if (DOM.preguntarMateria) DOM.preguntarMateria.value = 'todas';
+
+    // Ocultar el bloque "Afinar resultados"
+    if (DOM.preguntarFiltros) DOM.preguntarFiltros.style.display = 'none';
+
+    // Ocultar dashboard
+    actualizarDashboardPorPestana();
+
+    // Volver al estado inicial del listado
+    mostrarEstadoInicial('preguntar');
+}
 
 /* ============================================================================
    15. PESTAÑA EXACTA
@@ -744,7 +760,8 @@ async function ejecutarExacta(resetear = true) {
         AppState.exactaResultados = AppState.exactaResultados.concat(data.resultados || []);
         AppState.exactaOffset += AppState.exactaLoteSize;
 
-        if (DOM.exactaFiltros) DOM.exactaFiltros.style.display = 'grid';
+
+        if (DOM.exactaFiltros) DOM.exactaFiltros.style.display = 'flex';
         if (DOM.exactaAyuda) DOM.exactaAyuda.style.display = 'none';
 
         if (resetear) {
@@ -784,9 +801,8 @@ function aplicarFiltrosExacta() {
 
     actualizarDashboard(AppState.exactaTotal);
 
-    const encabezado = `📖 ${AppState.exactaTotal} coincidencias para: «${AppState.exactaConsulta}»`;
-
-    let html = `<div class="mensaje-ayuda">${escapeHtml(encabezado)}</div>`;
+    // Sin encabezado redundante: solo las tarjetas
+    let html = '';
     for (const t of AppState.exactaResultados) {
         html += construirTarjeta(t);
     }
@@ -794,6 +810,27 @@ function aplicarFiltrosExacta() {
     hidratarResumenes(AppState.exactaResultados);
 }
 
+function limpiarBusquedaExacta() {
+    // Vaciar la caja de texto y resetear estado
+    if (DOM.exactaTexto) DOM.exactaTexto.value = '';
+    AppState.exactaConsulta = '';
+    AppState.exactaResultados = [];
+    AppState.exactaTotal = 0;
+    AppState.exactaOffset = 0;
+
+    // Resetear filtros
+    if (DOM.exactaTipo) DOM.exactaTipo.value = 'todas';
+    if (DOM.exactaMateria) DOM.exactaMateria.value = 'todas';
+
+    // Ocultar el bloque "Afinar resultados"
+    if (DOM.exactaFiltros) DOM.exactaFiltros.style.display = 'none';
+
+    // Ocultar dashboard
+    actualizarDashboardPorPestana();
+
+    // Volver al estado inicial del listado
+    mostrarEstadoInicial('exacta');
+}
 function cargarMasExacta() {
     if (AppState.exactaResultados.length >= AppState.exactaTotal) return;
     ejecutarExacta(false);
@@ -889,6 +926,7 @@ if (DOM.preguntarTexto) {
 }
 if (DOM.preguntarTipo) DOM.preguntarTipo.addEventListener('change', aplicarFiltrosPreguntar);
 if (DOM.preguntarMateria) DOM.preguntarMateria.addEventListener('change', aplicarFiltrosPreguntar);
+if (DOM.btnLimpiarPreguntar) DOM.btnLimpiarPreguntar.addEventListener('click', limpiarBusquedaPreguntar);
 
 // --- Exacta ---
 if (DOM.btnExacta) DOM.btnExacta.addEventListener('click', () => ejecutarExacta(true));
@@ -902,7 +940,7 @@ if (DOM.exactaTexto) {
 }
 if (DOM.exactaTipo) DOM.exactaTipo.addEventListener('change', () => ejecutarExacta(true));
 if (DOM.exactaMateria) DOM.exactaMateria.addEventListener('change', () => ejecutarExacta(true));
-
+if (DOM.btnLimpiarExacta) DOM.btnLimpiarExacta.addEventListener('click', limpiarBusquedaExacta);
 // --- Listado: clic en tarjeta o en "Resumen IA" ---
 if (DOM.listadoContainer) {
     DOM.listadoContainer.addEventListener('click', (e) => {
