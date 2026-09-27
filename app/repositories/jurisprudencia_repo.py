@@ -359,18 +359,23 @@ class JurisprudenciaRepository:
             conn.close()
 
     # ------------------------------------------------------------------------
+        # ------------------------------------------------------------------------
     # MÉTODO 3: BÚSQUEDA SEMÁNTICA (el corazón del motor)
     # ------------------------------------------------------------------------
     def buscar_por_embedding(self, embedding: list, limite: int = 10) -> List[Dict[str, Any]]:
         """
         Busca tesis por similitud semántica usando pgvector.
         Devuelve las tesis más cercanas al embedding proporcionado.
+
+        La columna de embedding se resuelve vía settings.EMBEDDING_COLUMN
+        para soportar el switch local/supabase sin código duplicado.
         """
         logger.info(f"🔍 Buscando por similitud semántica (límite: {limite})...")
         conn = self._get_connection()
         try:
             cur = conn.cursor(cursor_factory=RealDictCursor)
-            cur.execute("""
+            col_emb = settings.EMBEDDING_COLUMN
+            cur.execute(f"""
                 SELECT 
                     registro_digital,
                     tipo,
@@ -379,10 +384,10 @@ class JurisprudenciaRepository:
                     fecha_publicacion,
                     rubro,
                     resumen_ia,
-                    (1 - (embedding <=> %s::vector)) AS similitud
+                    (1 - ({col_emb} <=> %s::vector)) AS similitud
                 FROM jurisprudencias
-                WHERE embedding IS NOT NULL
-                ORDER BY embedding <=> %s::vector
+                WHERE {col_emb} IS NOT NULL
+                ORDER BY {col_emb} <=> %s::vector
                 LIMIT %s;
             """, (embedding, embedding, limite))
             resultados = cur.fetchall()
@@ -393,7 +398,6 @@ class JurisprudenciaRepository:
             return []
         finally:
             conn.close()
-
 
 # ============================================================================
 # INSTANCIA GLOBAL (Singleton)

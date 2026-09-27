@@ -42,13 +42,20 @@ class JurisprudenciaService:
     def __init__(self):
         """
         Inicializa el cliente de OpenAI para generar embeddings.
+        Las dimensiones del embedding dependen del modo activo:
+          - Local:    1536 dims (embeddings completos)
+          - Supabase: 512 dims (embeddings reducidos con Matryoshka)
         """
         if not settings.OPENAI_API_KEY:
             logger.error("❌ No se encontró OPENAI_API_KEY en el .env")
             raise ValueError("OPENAI_API_KEY no está configurada.")
 
         self.openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
-        self.modelo_embedding = "text-embedding-3-small"  # 1536 dimensiones
+        self.modelo_embedding = "text-embedding-3-small"
+
+        # Dimensiones del embedding según el modo activo
+        self.dimensiones_embedding = settings.EMBEDDING_DIMENSIONS
+        logger.info(f"🔢 Dimensiones de embedding: {self.dimensiones_embedding}")
         logger.info("🔧 Servicio de jurisprudencia inicializado.")
 
     # ------------------------------------------------------------------------
@@ -56,14 +63,20 @@ class JurisprudenciaService:
     # ------------------------------------------------------------------------
     def _generar_embedding(self, texto: str) -> Optional[list]:
         """
-        Genera un embedding (vector de 1536 dimensiones) a partir de un texto.
-        Usa OpenAI para hacerlo.
+        Genera un embedding a partir de un texto.
+        Las dimensiones dependen del modo activo:
+          - Local:    1536 dims
+          - Supabase: 512 dims
         """
         try:
-            logger.debug(f"🧠 Generando embedding para texto de {len(texto)} caracteres...")
+            logger.debug(
+                f"🧠 Generando embedding ({self.dimensiones_embedding} dims) "
+                f"para texto de {len(texto)} caracteres..."
+            )
             response = self.openai_client.embeddings.create(
                 model=self.modelo_embedding,
-                input=texto[:8000]  # Límite de OpenAI
+                input=texto[:8000],
+                dimensions=self.dimensiones_embedding,
             )
             embedding = response.data[0].embedding
             logger.debug(f"✅ Embedding generado ({len(embedding)} dimensiones).")
@@ -144,7 +157,6 @@ class JurisprudenciaService:
             limit=limit,
         )
 
-
     # ------------------------------------------------------------------------
     # MÉTODO 2-QUATER: ESTADÍSTICAS DEL CORPUS
     # ------------------------------------------------------------------------
@@ -157,7 +169,6 @@ class JurisprudenciaService:
         """
         logger.info("📥 Solicitando estadísticas del corpus al motor...")
         return jurisprudencia_repo.obtener_stats()
-
 
     # ------------------------------------------------------------------------
     # MÉTODO 2-TER: RESÚMENES IA POR LOTE

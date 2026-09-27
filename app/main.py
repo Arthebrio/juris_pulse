@@ -4,6 +4,12 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 from app.api.routes import router as api_router
 
+from app.core.config import settings
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logging.info(f"🗄️  Modo de BD activo: {settings.resumen_modo()}")
+
 app = FastAPI(title="JURIS_PULSE_V3", version="1.0.0")
 
 # CORS...
