@@ -32,6 +32,7 @@ const AppState = {
     modoActual: 'explorar',
 
     explorarFiltradas: [],
+    terminoBusqueda: '',
     explorarVisibles: 0,
 
     preguntarConsulta: '',
@@ -45,7 +46,9 @@ const AppState = {
     exactaLoteSize: 100,
 
     cacheResumenes: {},
-    registroActual: null
+    registroActual: null,
+    detalleActual: null,
+
 };
 
 
@@ -70,6 +73,7 @@ const DOM = {
     panelExacta: document.getElementById('panelExacta'),
 
     explorarTipo: document.getElementById('explorarTipo'),
+    explorarBusqueda: document.getElementById('explorarBusqueda'),
     explorarMateria: document.getElementById('explorarMateria'),
 
     preguntarTexto: document.getElementById('preguntarTexto'),
@@ -95,6 +99,9 @@ const DOM = {
     drawer: document.getElementById('drawer'),
     drawerOverlay: document.getElementById('drawerOverlay'),
     btnCerrarDrawer: document.getElementById('btnCerrarDrawer'),
+    btnAcercaDe: document.getElementById('btnAcercaDe'),
+    modalAcercaDe: document.getElementById('modalAcercaDe'),
+    btnCerrarAcercaDe: document.getElementById('btnCerrarAcercaDe'),
 
     cortinaDetalle: document.getElementById('cortinaDetalle'),
     detBadgeTipo: document.getElementById('detBadgeTipo'),
@@ -120,7 +127,46 @@ function escapeHtml(texto) {
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
     return String(texto).replace(/[&<>"']/g, m => map[m]);
 }
+/**
+ * Normaliza un texto: quita acentos y pasa a minúsculas.
+ * Útil para comparaciones insensibles a acentos.
+ */
+function normalizarTexto(s) {
+    if (!s) return '';
+    return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
 
+/**
+ * Envuelve las ocurrencias de `termino` dentro de `texto` con <mark>.
+ * Insensible a acentos y mayúsculas/minúsculas.
+ * Escapa HTML en el resto del texto.
+ */
+function resaltar(texto, termino) {
+    if (!texto) return '';
+    if (!termino || termino.trim() === '') return escapeHtml(texto);
+
+    const textoNorm = normalizarTexto(texto);
+    const terminoNorm = normalizarTexto(termino);
+    const longTermino = terminoNorm.length;
+
+    if (longTermino === 0) return escapeHtml(texto);
+
+    let resultado = '';
+    let pos = 0;
+
+    while (pos < texto.length) {
+        const encontrado = textoNorm.indexOf(terminoNorm, pos);
+        if (encontrado === -1) {
+            resultado += escapeHtml(texto.substring(pos));
+            break;
+        }
+        resultado += escapeHtml(texto.substring(pos, encontrado));
+        resultado += '<mark>' + escapeHtml(texto.substring(encontrado, encontrado + longTermino)) + '</mark>';
+        pos = encontrado + longTermino;
+    }
+
+    return resultado;
+}
 function formatearFechaLarga(fechaStr) {
     if (!fechaStr) return 'Sin fecha';
     try {
@@ -274,6 +320,7 @@ function cambiarPestana(nuevoModo) {
     actualizarDashboardPorPestana();
 
     if (nuevoModo === 'explorar') {
+    AppState.terminoBusqueda = DOM.explorarBusqueda ? DOM.explorarBusqueda.value.trim() : '';
         renderizarExplorar();
     } else if (nuevoModo === 'preguntar') {
         if (AppState.preguntarResultados.length > 0) {
@@ -283,6 +330,7 @@ function cambiarPestana(nuevoModo) {
         }
     } else if (nuevoModo === 'exacta') {
         if (AppState.exactaResultados.length > 0) {
+            AppState.terminoBusqueda = AppState.exactaConsulta;
             aplicarFiltrosExacta();
         } else {
             mostrarEstadoInicial('exacta');
@@ -484,7 +532,9 @@ function construirTarjeta(t, opciones = {}) {
     const fechaCorta = formatearFechaCorta(t.fecha_publicacion);
     const tipoIcono = t.tipo === 'Jurisprudencia' ? '⚖️' : '📄';
 
-    // Score discreto: 0-1 → ~7.9-10.2 (×10 + 3, 1 decimal)
+    // ¿Hay término activo para resaltar?
+    const terminoResaltar = opciones.terminoResaltar || AppState.terminoBusqueda || '';
+
     let scoreTxt = '';
     if (opciones.mostrarSimilitud && t.similitud !== undefined) {
         scoreTxt = (parseFloat(t.similitud) * 10 + 3).toFixed(1);
@@ -497,7 +547,7 @@ function construirTarjeta(t, opciones = {}) {
                 <div class="tarjeta-tipo">${tipoIcono} ${escapeHtml(t.tipo || 'Aislada')}</div>
                 <div class="tarjeta-materia">📘 ${escapeHtml(materiasStr)}</div>
             </div>
-            <div class="tarjeta-rubro">${escapeHtml(t.rubro)}</div>
+            <div class="tarjeta-rubro">${resaltar(t.rubro, terminoResaltar)}</div>
             <div class="tarjeta-bottom">
                 <div class="tarjeta-resumen">🤖 Resumen IA</div>
                 <div class="tarjeta-fecha">📅 Publicada el ${escapeHtml(fechaCorta)}</div>
@@ -544,6 +594,9 @@ const EXPLORAR_LOTE_INCREMENTO = 100;
 function renderizarExplorar() {
     const tipo = DOM.explorarTipo ? DOM.explorarTipo.value : 'todas';
     const materia = DOM.explorarMateria ? DOM.explorarMateria.value : 'todas';
+    const busqueda = (DOM.explorarBusqueda ? DOM.explorarBusqueda.value : '').trim();
+
+    AppState.terminoBusqueda = busqueda;
 
     const filtradas = AppState.todasLasTesis.filter(t => {
         if (tipo !== 'todas' && t.tipo !== tipo) return false;
@@ -552,6 +605,11 @@ function renderizarExplorar() {
                 ? t.materia
                 : (t.materia || '').split(',').map(m => m.trim());
             if (!materias.includes(materia)) return false;
+        }
+        if (busqueda) {
+            const rubroNorm = normalizarTexto(t.rubro || '');
+            const busquedaNorm = normalizarTexto(busqueda);
+            if (!rubroNorm.includes(busquedaNorm)) return false;
         }
         return true;
     });
@@ -564,7 +622,7 @@ function renderizarExplorar() {
     renderizarTarjetas(filtradas.slice(0, AppState.explorarVisibles));
 }
 
-function cargarMasExplorar() {
+   function cargarMasExplorar() {
     const total = AppState.explorarFiltradas.length;
     if (AppState.explorarVisibles >= total) return;
 
@@ -606,6 +664,7 @@ async function ejecutarPreguntar() {
     }
 
     AppState.preguntarConsulta = consulta;
+    AppState.terminoBusqueda = '';  // Preguntar no resalta texto literal
     log(`Búsqueda semántica: "${consulta}"`);
 
     if (DOM.listadoContainer) {
@@ -723,6 +782,7 @@ async function ejecutarExacta(resetear = true) {
 
     if (resetear) {
         AppState.exactaConsulta = consulta;
+        AppState.terminoBusqueda = consulta;
         AppState.exactaResultados = [];
         AppState.exactaOffset = 0;
         AppState.exactaTotal = 0;
@@ -858,6 +918,7 @@ async function abrirCortina(registro) {
         if (!data.success || !data.tesis) throw new Error('Tesis no encontrada');
 
         const t = data.tesis;
+        AppState.detalleActual = t;
 
         if (DOM.detBadgeTipo) DOM.detBadgeTipo.innerText = (t.tipo || 'Aislada').toUpperCase();
         if (DOM.detBadgeMateria) DOM.detBadgeMateria.innerText = formatearMaterias(t.materia);
@@ -866,8 +927,9 @@ async function abrirCortina(registro) {
         if (DOM.detFecha) {
             DOM.detFecha.innerText = `📅 Publicada el ${formatearFechaLarga(t.fecha_publicacion)}`;
         }
-        if (DOM.detTextoContenedor) DOM.detTextoContenedor.innerText = construirTextoDetalle(t);
-
+        if (DOM.detTextoContenedor) {
+            DOM.detTextoContenedor.innerHTML = construirHTMLDetalle(t, AppState.terminoBusqueda);
+        }
         log(`Detalle del registro ${registro} cargado.`);
     } catch (error) {
         log(`Error al cargar detalle: ${error.message}`, 'error');
@@ -878,20 +940,74 @@ async function abrirCortina(registro) {
 }
 
 function construirTextoDetalle(t) {
-    const partes = [];
-    if (t.resumen_ia) partes.push(`🤖 SÍNTESIS IA:\n${t.resumen_ia}`);
-    if (t.hechos) partes.push(`📋 HECHOS:\n${t.hechos}`);
-    if (t.criterio_juridico) partes.push(`⚖️ CRITERIO JURÍDICO:\n${t.criterio_juridico}`);
-    if (t.justificacion) partes.push(`📖 JUSTIFICACIÓN:\n${t.justificacion}`);
-    if (t.texto) partes.push(`📜 TEXTO:\n${t.texto}`);
-    return partes.join('\n\n');
+    const bloques = [];
+
+    // 1. Metadatos
+    const meta = [];
+    meta.push(`Registro digital: ${t.registro_digital || 'N/A'}`);
+    meta.push(`Tipo: ${t.tipo || 'N/A'}`);
+    meta.push(`Materia: ${t.materia || 'N/A'}`);
+    meta.push(`Época: ${t.epoca || 'N/A'}`);
+    meta.push(`Instancia: ${t.instancia || 'N/A'}`);
+    meta.push(`Clave de tesis: ${t.clave_tesis || 'N/A'}`);
+    meta.push(`Expediente: ${t.expediente || 'N/A'}`);
+    meta.push(`Fecha de publicación: ${formatearFechaLarga(t.fecha_publicacion)}`);
+    bloques.push(meta.join('\n'));
+
+    // 2. Rubro
+    if (t.rubro) bloques.push(t.rubro);
+
+    // 3. Secciones de contenido
+    if (t.resumen_ia)        bloques.push(`SÍNTESIS IA\n\n${t.resumen_ia}`);
+    if (t.hechos)            bloques.push(`HECHOS\n\n${t.hechos}`);
+    if (t.criterio_juridico) bloques.push(`CRITERIO JURÍDICO\n\n${t.criterio_juridico}`);
+    if (t.justificacion)     bloques.push(`JUSTIFICACIÓN\n\n${t.justificacion}`);
+    if (t.texto)             bloques.push(`TEXTO\n\n${t.texto}`);
+
+    return bloques.join('\n\n────────────────────\n\n');
 }
 
 function cerrarCortina() {
     if (DOM.cortinaDetalle) DOM.cortinaDetalle.classList.add('oculta');
     AppState.registroActual = null;
+    AppState.detalleActual = null;
 }
 
+
+function construirHTMLDetalle(t, termino = '') {
+    const secciones = [];
+    if (t.resumen_ia) {
+        secciones.push(
+            `<span class="seccion-titulo">SÍNTESIS IA</span>` +
+            `<span class="contenido-seccion">${resaltar(t.resumen_ia, termino)}</span>`
+        );
+    }
+    if (t.hechos) {
+        secciones.push(
+            `<span class="seccion-titulo">HECHOS</span>` +
+            `<span class="contenido-seccion">${resaltar(t.hechos, termino)}</span>`
+        );
+    }
+    if (t.criterio_juridico) {
+        secciones.push(
+            `<span class="seccion-titulo">CRITERIO JURÍDICO</span>` +
+            `<span class="contenido-seccion">${resaltar(t.criterio_juridico, termino)}</span>`
+        );
+    }
+    if (t.justificacion) {
+        secciones.push(
+            `<span class="seccion-titulo">JUSTIFICACIÓN</span>` +
+            `<span class="contenido-seccion">${resaltar(t.justificacion, termino)}</span>`
+        );
+    }
+    if (t.texto) {
+        secciones.push(
+            `<span class="seccion-titulo">TEXTO</span>` +
+            `<span class="contenido-seccion">${resaltar(t.texto, termino)}</span>`
+        );
+    }
+    return secciones.join(`<span class="separador">────────────</span>`);
+}
 
 /* ============================================================================
    17. INTERACCIÓN GENERAL
@@ -912,6 +1028,7 @@ if (DOM.pestanaExacta) DOM.pestanaExacta.addEventListener('click', () => cambiar
 
 // --- Explorar ---
 if (DOM.explorarTipo) DOM.explorarTipo.addEventListener('change', renderizarExplorar);
+if (DOM.explorarBusqueda) DOM.explorarBusqueda.addEventListener('input', renderizarExplorar);
 if (DOM.explorarMateria) DOM.explorarMateria.addEventListener('change', renderizarExplorar);
 
 // --- Preguntar ---
@@ -998,13 +1115,71 @@ if (DOM.btnCopiarTexto) {
         const registro = AppState.registroActual;
         if (!registro) return;
 
-        const t = [...AppState.todasLasTesis, ...AppState.preguntarResultados, ...AppState.exactaResultados]
-            .find(x => x.registro_digital === registro);
+        const t = AppState.detalleActual;
         if (!t) return;
 
         const texto = construirTextoDetalle(t);
-        abrirModalCopiar(texto);
+
+        // Estrategia 1: API moderna (funciona en HTTPS y localhost)
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(texto).then(
+                () => mostrarFeedbackCopiado(true),
+                () => {
+                    const exito = copiarConExecCommand(texto);
+                    if (exito) mostrarFeedbackCopiado(true);
+                    else abrirModalCopiar(texto);
+                }
+            );
+            return;
+        }
+
+        // Estrategia 2: execCommand directo (funciona en HTTP con IP)
+        const exito = copiarConExecCommand(texto);
+        if (exito) mostrarFeedbackCopiado(true);
+        else abrirModalCopiar(texto);
     });
+}
+
+function copiarConExecCommand(texto) {
+    try {
+        const ta = document.createElement('textarea');
+        ta.value = texto;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '0';
+        ta.style.left = '0';
+        ta.style.width = '2em';
+        ta.style.height = '2em';
+        ta.style.padding = '0';
+        ta.style.border = 'none';
+        ta.style.outline = 'none';
+        ta.style.boxShadow = 'none';
+        ta.style.background = 'transparent';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, texto.length);
+        const exito = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return exito;
+    } catch (err) {
+        log(`execCommand falló: ${err.message}`, 'warn');
+        return false;
+    }
+}
+
+function mostrarFeedbackCopiado(exito) {
+    if (!DOM.btnCopiarTexto) return;
+    if (exito) {
+        DOM.btnCopiarTexto.innerHTML = '<i class="fas fa-check"></i> Copiado';
+    } else {
+        DOM.btnCopiarTexto.innerHTML = '<i class="fas fa-times"></i> Error';
+    }
+    setTimeout(() => {
+        DOM.btnCopiarTexto.innerHTML = '<i class="fas fa-copy"></i> Copiar Tesis';
+    }, 2000);
+
 }
 
 function abrirModalCopiar(texto) {
@@ -1091,7 +1266,46 @@ window.addEventListener('scroll', manejarScrollHeader, { passive: true });
 
 
 
-// --- Scroll ---
+// --- Drawer: Acerca de (modal) ---
+if (DOM.btnAcercaDe) {
+    DOM.btnAcercaDe.addEventListener('click', (e) => {
+        e.preventDefault();
+        cerrarDrawer();
+        abrirModalAcercaDe();
+    });
+}
+
+// Cerrar el drawer al hacer clic en items sin función
+document.querySelectorAll('.drawer-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+        if (item.id === 'btnAcercaDe') return;          // ya manejado arriba
+        const href = item.getAttribute('href');
+        if (href && href.startsWith('mailto:')) {       // contacto: abrir mail
+            cerrarDrawer();
+            return;
+        }
+        e.preventDefault();
+        cerrarDrawer();
+    });
+});
+
+function abrirModalAcercaDe() {
+    if (DOM.modalAcercaDe) DOM.modalAcercaDe.classList.add('visible');
+}
+
+function cerrarModalAcercaDe() {
+    if (DOM.modalAcercaDe) DOM.modalAcercaDe.classList.remove('visible');
+}
+
+if (DOM.modalAcercaDe) {
+    DOM.modalAcercaDe.addEventListener('click', (e) => {
+        if (e.target === DOM.modalAcercaDe) cerrarModalAcercaDe();
+    });
+}
+
+if (DOM.btnCerrarAcercaDe) {
+    DOM.btnCerrarAcercaDe.addEventListener('click', cerrarModalAcercaDe);
+}
 
 // --- Botón "Regresar arriba" ---
 if (DOM.btnSubir) {

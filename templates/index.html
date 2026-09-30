@@ -14,7 +14,7 @@
     <!-- ==================================================================
          [BLOQUE 2] CSS PROPIO
          ================================================================== -->
-    <link rel="stylesheet" href="/static/css/style.css?v=3.2.3">
+    <link rel="stylesheet" href="/static/css/style.css?v=3.2.8">
 </head>
 <body data-modo="explorar">
 
@@ -70,10 +70,20 @@
             </div>
         </div>
 
-        <!-- ==================================================================
+                <!-- ==================================================================
              [BLOQUE 6] PESTAÑA: EXPLORAR
              ================================================================== -->
         <section class="panel" id="panelExplorar">
+
+            <div class="caja-busqueda">
+                <i class="fas fa-search icono-buscar"></i>
+                <input
+                    type="text"
+                    id="explorarBusqueda"
+                    placeholder="Buscar en el rubro..."
+                >
+            </div>
+
             <div class="grid-filtros">
                 <select id="explorarTipo" class="selector">
                     <option value="todas">📋 Todas las Tesis</option>
@@ -196,7 +206,7 @@
 
     </main>
 
-    <!-- ==================================================================
+       <!-- ==================================================================
          [BLOQUE 11] DRAWER (menú lateral)
          ================================================================== -->
     <aside class="drawer" id="drawer">
@@ -208,7 +218,7 @@
         </div>
 
         <nav class="drawer-nav">
-            <a href="#" class="drawer-item">
+            <a href="#" class="drawer-item" id="btnAcercaDe">
                 <i class="fas fa-info-circle"></i> Acerca de JURIS_PULSE
             </a>
             <a href="#" class="drawer-item">
@@ -220,13 +230,13 @@
             <a href="#" class="drawer-item">
                 <i class="fas fa-history"></i> Novedades
             </a>
-            <a href="#" class="drawer-item">
+            <a href="mailto:arturogrt@hotmail.com" class="drawer-item">
                 <i class="fas fa-envelope"></i> Contacto
             </a>
         </nav>
 
         <div class="drawer-footer">
-            <small>Versión 3.2.3 · 2026</small>
+            <small>Versión 3.2.8 · 2026</small>
         </div>
     </aside>
 
@@ -284,6 +294,32 @@
         </div>
     </div>
 
+        <!-- ==================================================================
+         [BLOQUE 12-TER] MODAL "ACERCA DE"
+         Se abre desde el drawer. Estilo consistente con el tooltip de Resumen IA.
+         ================================================================== -->
+    <div class="modal-acerca-overlay" id="modalAcercaDe">
+        <div class="modal-acerca">
+            <div class="modal-acerca-header">
+                <div class="modal-acerca-titulo">
+                    <i class="fas fa-info-circle"></i>
+                    Acerca de JURIS_PULSE
+                </div>
+                <button class="modal-acerca-cerrar" id="btnCerrarAcercaDe" aria-label="Cerrar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-acerca-cuerpo">
+                <p class="modal-acerca-app"><strong>JURIS_PULSE v3.2.8</strong></p>
+                <p>Consulta quirúrgica de jurisprudencias del Semanario Judicial de la Federación.</p>
+                <p class="modal-acerca-meta">Corpus actualizado al 25 de septiembre de 2026 · 27,626 tesis.</p>
+                <p class="modal-acerca-creditos">Desarrollado con FastAPI · Supabase · OpenAI.</p>
+            </div>
+        </div>
+    </div>
+
+
+
     <!-- ==================================================================
          [BLOQUE 13] FOOTER
          ================================================================== -->
@@ -303,7 +339,7 @@
     <!-- ==================================================================
          [BLOQUE 14] SCRIPT PRINCIPAL
          ================================================================== -->
-    <script src="/static/js/script.js?v=3.2.3" defer></script>
+    <script src="/static/js/script.js?v=3.2.7" defer></script>
 
 </body>
 </html>

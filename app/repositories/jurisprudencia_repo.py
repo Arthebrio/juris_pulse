@@ -141,35 +141,37 @@ class JurisprudenciaRepository:
         limit: int = 100,
     ) -> Dict[str, Any]:
         """
-        Búsqueda literal (ILIKE + unaccent) en rubro y resumen_ia.
-        Ignora mayúsculas/minúsculas Y acentos.
-        Ejemplo: "aplicacion" encuentra "aplicación" y viceversa.
+        Búsqueda literal (ILIKE + immutable_unaccent) sobre la concatenación
+        de los campos de texto oficial: rubro, texto, hechos, criterio_juridico
+        y justificacion.
 
-        Filtros opcionales:
-          - tipo: 'Jurisprudencia' | 'Aislada' | None
-          - materia: 'Penal' | 'Civil' | ... | None
-        Paginación:
-          - offset: desde qué fila empezar
-          - limit: cuántas devolver
+        Usa el índice GIN de trigramas `idx_jurisprudencias_texto_trgm` que
+        existe sobre esa misma concatenación, logrando búsquedas rápidas aún
+        con 27,000+ registros.
 
-        Devuelve:
-          { total: int, resultados: [ {...}, ... ] }
+        Ignora mayúsculas/minúsculas Y acentos. No tolera errores ortográficos.
         """
         logger.info(
-            f"🔤 Búsqueda exacta (sin acentos): '{consulta}' "
+            f"🔤 Búsqueda exacta (concatenada): '{consulta}' "
             f"(tipo={tipo}, materia={materia}, offset={offset}, limit={limit})"
         )
         conn = self._get_connection()
         try:
             cur = conn.cursor(cursor_factory=RealDictCursor)
 
-            # Construcción dinámica del WHERE con unaccent en ambos lados
             patron = f"%{consulta}%"
-            condiciones = [
-                "(unaccent(rubro) ILIKE unaccent(%s) "
-                "OR unaccent(resumen_ia) ILIKE unaccent(%s))"
-            ]
-            params: list = [patron, patron]
+
+            # Concatenación con immutable_unaccent (para usar el índice GIN)
+            campos_concat = """(
+                immutable_unaccent(COALESCE(rubro, '')) || ' ' ||
+                immutable_unaccent(COALESCE(texto, '')) || ' ' ||
+                immutable_unaccent(COALESCE(hechos, '')) || ' ' ||
+                immutable_unaccent(COALESCE(criterio_juridico, '')) || ' ' ||
+                immutable_unaccent(COALESCE(justificacion, ''))
+            )"""
+
+            condiciones = [f"{campos_concat} ILIKE immutable_unaccent(%s)"]
+            params: list = [patron]
 
             if tipo:
                 condiciones.append("tipo = %s")
