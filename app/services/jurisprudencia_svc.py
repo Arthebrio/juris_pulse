@@ -181,6 +181,24 @@ class JurisprudenciaService:
         logger.info(f"📥 Solicitando resúmenes IA para {len(registros)} registros...")
         return jurisprudencia_repo.obtener_resumenes(registros)
 
+        # ------------------------------------------------------------------------
+    # MÉTODO 4: EVENTOS (contador de uso)
+    # ------------------------------------------------------------------------
+    def registrar_evento(self, tipo: str) -> bool:
+        """
+        Registra un evento de uso (visita, búsqueda, copiar).
+        Delega al motor.
+        """
+        return jurisprudencia_repo.registrar_evento(tipo)
+
+    def obtener_eventos_stats(self) -> Dict[str, Any]:
+        """
+        Devuelve estadísticas agregadas de uso.
+        Delega al motor.
+        """
+        return jurisprudencia_repo.obtener_eventos_stats()
+
+
     # ------------------------------------------------------------------------
     # MÉTODO 3: DETALLE DE UNA TESIS
     # ------------------------------------------------------------------------

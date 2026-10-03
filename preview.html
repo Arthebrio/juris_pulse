@@ -1,250 +1,289 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-tema="oscuro">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test · Copiar al portapapeles</title>
+    <title>Preview · Modal de Bienvenida</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
+        :root {
+            --fondo-principal: #020617;
+            --fondo-tarjeta: #0f172a;
+            --fondo-input: #1e293b;
+            --borde: #1e293b;
+            --borde-suave: #334155;
+            --acento-explorar: #f59e0b;
+            --acento-preguntar: #8b5cf6;
+            --acento-exacta: #06b6d4;
+            --acento: var(--acento-explorar);
+            --texto-principal: #e2e8f0;
+            --texto-secundario: #94a3b8;
+            --texto-tenue: #64748b;
+            --radio: 12px;
+            --transicion: 0.2s ease;
+        }
+
         body {
-            background: #020617;
-            color: #e2e8f0;
+            background: var(--fondo-principal);
+            color: var(--texto-principal);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             font-size: 14px;
             line-height: 1.5;
-            padding: 24px;
-            max-width: 720px;
-            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
         }
 
-        h1 { font-size: 20px; margin-bottom: 6px; color: #a78bfa; }
-        .subtitulo { color: #94a3b8; font-size: 12px; margin-bottom: 24px; }
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 20px;
+            color: var(--acento);
+        }
 
-        button {
-            background: #8b5cf6;
-            color: #fff;
-            border: none;
-            padding: 14px 20px;
-            border-radius: 10px;
-            font-size: 14px;
+        .intro-preview {
+            text-align: center;
+            color: var(--texto-secundario);
+            font-size: 12px;
+            margin-bottom: 24px;
+        }
+
+        .controles {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .btn-preview {
+            background: var(--fondo-input);
+            color: var(--texto-principal);
+            border: 1px solid var(--borde-suave);
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
             font-weight: bold;
             cursor: pointer;
             font-family: inherit;
-            margin-bottom: 8px;
-            margin-right: 8px;
         }
 
-        button:hover { opacity: 0.9; }
-
-        .info { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
-
-        .log {
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 8px;
-            padding: 12px 14px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.6;
-            margin-top: 16px;
-            margin-bottom: 16px;
-            max-height: 200px;
-            overflow-y: auto;
-            white-space: pre-wrap;
+        .btn-preview:hover {
+            background: var(--borde-suave);
         }
 
-        .log .ok { color: #4ade80; }
-        .log .warn { color: #fbbf24; }
-        .log .err { color: #f87171; }
-        .log .info { color: #94a3b8; }
+        /* ============================================================
+           MODAL DE BIENVENIDA — LA PROPUESTA
+           ============================================================ */
+        .modal-bienvenida-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(6px);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
 
-        textarea {
+        .modal-bienvenida-overlay.visible {
+            display: flex;
+        }
+
+        .modal-bienvenida {
+            background: var(--fondo-tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 16px;
+            max-width: 520px;
             width: 100%;
-            min-height: 100px;
-            background: #0f172a;
-            border: 2px solid #334155;
+            padding: 28px 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            animation: aparecer 0.28s ease;
+        }
+
+        @keyframes aparecer {
+            from { opacity: 0; transform: scale(0.96) translateY(10px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .bienvenida-logo {
+            text-align: center;
+            font-size: 26px;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .bienvenida-logo .pulse {
+            color: var(--acento-explorar);
+        }
+
+        .bienvenida-tagline {
+            text-align: center;
+            color: var(--texto-secundario);
+            font-size: 13px;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .bienvenida-tagline strong {
+            color: var(--texto-principal);
+        }
+
+        .bienvenida-opciones {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .opcion {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 12px 14px;
+            background: var(--fondo-principal);
+            border: 1px solid var(--borde);
+            border-left: 4px solid var(--acento);
             border-radius: 10px;
-            padding: 12px;
-            color: #e2e8f0;
+        }
+
+        .opcion.explorar  { border-left-color: var(--acento-explorar); }
+        .opcion.preguntar { border-left-color: var(--acento-preguntar); }
+        .opcion.exacta    { border-left-color: var(--acento-exacta); }
+
+        .opcion-icono {
+            font-size: 20px;
+            line-height: 1;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .opcion-texto {
+            flex: 1;
+        }
+
+        .opcion-titulo {
+            font-weight: 900;
             font-size: 13px;
+            margin-bottom: 2px;
+            color: var(--texto-principal);
+        }
+
+        .opcion-titulo.explorar  { color: var(--acento-explorar); }
+        .opcion-titulo.preguntar { color: var(--acento-preguntar); }
+        .opcion-titulo.exacta    { color: var(--acento-exacta); }
+
+        .opcion-desc {
+            font-size: 12px;
+            color: var(--texto-secundario);
+            line-height: 1.5;
+        }
+
+        .bienvenida-footer {
+            text-align: center;
+            font-size: 11px;
+            color: var(--texto-tenue);
+            margin-bottom: 18px;
+        }
+
+        .btn-empezar {
+            width: 100%;
+            background: var(--acento);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 14px;
+            font-weight: 900;
+            cursor: pointer;
             font-family: inherit;
-            resize: vertical;
-            margin-top: 8px;
+            transition: opacity var(--transicion);
         }
 
-        .resultado {
-            margin-top: 24px;
-            padding: 16px;
-            background: #0f172a;
-            border-left: 4px solid #8b5cf6;
-            border-radius: 8px;
-            font-size: 13px;
+        .btn-empezar:hover {
+            opacity: 0.9;
         }
-
-        .resultado h2 { font-size: 14px; margin-bottom: 8px; color: #a78bfa; }
-
-        .status-lista {
-            list-style: none;
-            padding: 0;
-            margin-top: 12px;
-        }
-
-        .status-lista li {
-            padding: 6px 0;
-            font-size: 13px;
-        }
-
-        .status-lista .check { color: #4ade80; margin-right: 6px; }
-        .status-lista .cross { color: #f87171; margin-right: 6px; }
     </style>
 </head>
 <body>
 
-    <h1>Test · Copiar al portapapeles</h1>
-    <p class="subtitulo">Verificamos si el copiado funciona en este navegador y contexto.</p>
+    <h1>Preview · Modal de Bienvenida</h1>
+    <p class="intro-preview">Lo que verá el usuario en su primera visita</p>
 
-    <div class="resultado">
-        <h2>Estado del navegador</h2>
-        <ul class="status-lista" id="estado"></ul>
+    <div class="controles">
+        <button class="btn-preview" onclick="abrirBienvenida()">
+            <i class="fas fa-eye"></i> Ver modal
+        </button>
     </div>
 
-    <div class="resultado">
-        <h2>Acciones</h2>
-        <button id="btnCopiar">📋 Copiar texto de prueba</button>
-        <button id="btnLimpiar">🧹 Limpiar log</button>
-        <p class="info">Presiona "Copiar" y luego pega abajo con Ctrl+V (o mantén presionado en móvil).</p>
-        <textarea id="verificador" placeholder="Pega aquí con Ctrl+V para verificar que se copió..."></textarea>
-    </div>
+    <!-- ============================================================
+         MODAL DE BIENVENIDA
+         ============================================================ -->
+    <div class="modal-bienvenida-overlay" id="modalBienvenida">
+        <div class="modal-bienvenida">
 
-    <div class="log" id="log"></div>
+            <div class="bienvenida-logo">
+                JURIS<span class="pulse">_PULSE</span>
+            </div>
+
+            <p class="bienvenida-tagline">
+                Consulta <strong>27,665 jurisprudencias</strong> del Semanario Judicial de la Federación en segundos.
+            </p>
+
+            <div class="bienvenida-opciones">
+
+                <div class="opcion explorar">
+                    <div class="opcion-icono">🔍</div>
+                    <div class="opcion-texto">
+                        <div class="opcion-titulo explorar">Explorar</div>
+                        <div class="opcion-desc">Filtra por tipo, materia y busca dentro del rubro.</div>
+                    </div>
+                </div>
+
+                <div class="opcion preguntar">
+                    <div class="opcion-icono">🧠</div>
+                    <div class="opcion-texto">
+                        <div class="opcion-titulo preguntar">Preguntar</div>
+                        <div class="opcion-desc">Describe tu caso en lenguaje natural. La IA busca por significado.</div>
+                    </div>
+                </div>
+
+                <div class="opcion exacta">
+                    <div class="opcion-icono">🔤</div>
+                    <div class="opcion-texto">
+                        <div class="opcion-titulo exacta">Exacta</div>
+                        <div class="opcion-desc">Busca una palabra o frase literal en todo el texto de las tesis.</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <p class="bienvenida-footer">
+                Gratis · Sin registro · Corrección de acentos automática
+            </p>
+
+            <button class="btn-empezar" onclick="cerrarBienvenida()">
+                Entendido, empecemos
+            </button>
+
+        </div>
+    </div>
 
     <script>
-        const log = document.getElementById('log');
-
-        function escribir(mensaje, tipo = 'info') {
-            const ahora = new Date().toLocaleTimeString();
-            log.innerHTML += `<span class="${tipo}">[${ahora}] ${mensaje}</span>\n`;
-            log.scrollTop = log.scrollHeight;
+        function abrirBienvenida() {
+            document.getElementById('modalBienvenida').classList.add('visible');
         }
-
-        // ---- Diagnóstico inicial ----
-        const estado = document.getElementById('estado');
-        const checks = [
-            ['Contexto seguro (HTTPS o localhost)', window.isSecureContext],
-            ['API navigator.clipboard disponible', !!(navigator.clipboard && navigator.clipboard.writeText)],
-            ['document.execCommand disponible', typeof document.execCommand === 'function'],
-            ['Protocolo', window.location.protocol],
-            ['Host', window.location.host],
-        ];
-        checks.forEach(([nombre, valor]) => {
-            const li = document.createElement('li');
-            const esBool = typeof valor === 'boolean';
-            const icono = esBool ? (valor ? '<span class="check">✅</span>' : '<span class="cross">❌</span>') : 'ℹ️ ';
-            li.innerHTML = `${icono}<strong>${nombre}:</strong> ${valor}`;
-            estado.appendChild(li);
-        });
-
-        escribir('Test iniciado.', 'info');
-        escribir(`URL: ${window.location.href}`, 'info');
-
-        // ============================================================
-        // LÓGICA DE COPIADO (idéntica a la que vamos a usar en la app)
-        // ============================================================
-        const TEXTO_PRUEBA = `Registro digital: 2032635
-Tipo: Jurisprudencia
-Materia: Administrativa
-Época: Duodécima Época
-Instancia: Pleno
-Clave de tesis: PC.XIX. J/19 C (10a.)
-Expediente: N/A
-Fecha de publicación: 11 de septiembre de 2026
-
-────────────────────
-
-TRANSPORTE PARA EL ESTADO DE BAJA CALIFORNIA SUR. LOS ARTÍCULOS 6o., 47, 47 BIS Y 47 TER DEL REGLAMENTO DE LA LEY RELATIVA CONSTITUYEN UN SISTEMA NORMATIVO QUE REGULA LA ACTIVIDAD DE TRANSPORTE TURÍSTICO LOCAL, SUJETO A UN PERMISO EVENTUAL.
-
-────────────────────
-
-SÍNTESIS IA
-
-El Reglamento de la Ley de Transporte para el Estado de Baja California Sur establece, a través de sus artículos 6o., 47, 47 BIS y 47 TER, un sistema normativo que regula la actividad de transporte turístico local.
-
-──────────── FIN DE LA PRUEBA ────────────`;
-
-        function copiarConExecCommand(texto) {
-            try {
-                const ta = document.createElement('textarea');
-                ta.value = texto;
-                ta.setAttribute('readonly', '');
-                ta.style.position = 'fixed';
-                ta.style.top = '0';
-                ta.style.left = '0';
-                ta.style.width = '2em';
-                ta.style.height = '2em';
-                ta.style.padding = '0';
-                ta.style.border = 'none';
-                ta.style.outline = 'none';
-                ta.style.boxShadow = 'none';
-                ta.style.background = 'transparent';
-                ta.style.opacity = '0';
-                document.body.appendChild(ta);
-                ta.focus();
-                ta.select();
-                ta.setSelectionRange(0, texto.length);
-                const exito = document.execCommand('copy');
-                document.body.removeChild(ta);
-                return exito;
-            } catch (err) {
-                escribir(`execCommand lanzó excepción: ${err.message}`, 'err');
-                return false;
-            }
+        function cerrarBienvenida() {
+            document.getElementById('modalBienvenida').classList.remove('visible');
         }
-
-        document.getElementById('btnCopiar').addEventListener('click', () => {
-            escribir('─── Click en Copiar ───', 'info');
-
-            // Estrategia 1: API moderna
-            if (navigator.clipboard && window.isSecureContext) {
-                escribir('Intentando: navigator.clipboard.writeText()', 'info');
-                navigator.clipboard.writeText(TEXTO_PRUEBA).then(
-                    () => {
-                        escribir('✅ ÉXITO con navigator.clipboard', 'ok');
-                        escribir('Ahora pega en el textarea para verificar.', 'info');
-                    },
-                    (err) => {
-                        escribir(`❌ Falló navigator.clipboard: ${err.message}`, 'warn');
-                        escribir('Reintentando con execCommand...', 'info');
-                        const exito = copiarConExecCommand(TEXTO_PRUEBA);
-                        if (exito) {
-                            escribir('✅ ÉXITO con execCommand', 'ok');
-                            escribir('Ahora pega en el textarea para verificar.', 'info');
-                        } else {
-                            escribir('❌ También falló execCommand.', 'err');
-                            escribir('Se abriría el modal fallback en la app.', 'warn');
-                        }
-                    }
-                );
-                return;
-            }
-
-            // Estrategia 2: execCommand (contexto no seguro)
-            escribir('Contexto NO seguro, usando execCommand directamente.', 'info');
-            const exito = copiarConExecCommand(TEXTO_PRUEBA);
-            if (exito) {
-                escribir('✅ ÉXITO con execCommand', 'ok');
-                escribir('Ahora pega en el textarea para verificar.', 'info');
-            } else {
-                escribir('❌ Falló execCommand.', 'err');
-                escribir('Se abriría el modal fallback en la app.', 'warn');
-            }
+        // Cerrar con clic fuera
+        document.getElementById('modalBienvenida').addEventListener('click', (e) => {
+            if (e.target.id === 'modalBienvenida') cerrarBienvenida();
         });
-
-        document.getElementById('btnLimpiar').addEventListener('click', () => {
-            log.innerHTML = '';
-            document.getElementById('verificador').value = '';
-            escribir('Log limpio.', 'info');
-        });
+        // Abrir automáticamente al cargar
+        window.addEventListener('DOMContentLoaded', abrirBienvenida);
     </script>
 
 </body>

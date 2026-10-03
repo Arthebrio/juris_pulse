@@ -128,3 +128,25 @@ Tocayo, este README es más que documentación. Es **la memoria del proyecto**. 
     □
 
     Badge "Coincide en resumen IA" en búsqueda exacta (cuando el match no está en rubro). 
+
+    - [ ] **Ajustar tamaño de lote en `subir_a_supabase.py`**
+  - **Descubrimiento (02/10/2026):** desde que se creó el índice GIN
+    `idx_jurisprudencias_texto_trgm`, el UPSERT a Supabase por lotes grandes
+    (50+) da `statement timeout`.
+  - **Causa:** el índice GIN calcula trigramas sobre la concatenación de
+    5 campos con `immutable_unaccent`, lo cual es carísimo por fila.
+  - **Workaround actual:** usar `--lote 5`. Funciona sin timeout.
+  - **Solución ideal a futuro:** deshabilitar el índice temporalmente
+    antes de subidas masivas (`DROP INDEX`), subir, y recrearlo después
+    (`CREATE INDEX`, tarda 1-2 min). Alternativa: cambiar el default del
+    script a `--lote 5`.
+
+    ### Feedback de usuarios (03/10/2026)
+- 🔴 **Falta onboarding:** los usuarios no entienden qué es la app al entrar.
+  - Solución: modal de bienvenida en primera visita (localStorage).
+- 🟡 **Drawer sin contenido útil:** "Guía de uso", "Atajos", "Novedades" están vacíos.
+  - Solución: simplificar a 2 items (Acerca de + ¿Cómo se usa?).
+- 🟡 **Contacto (`mailto:`) se siente ajeno a la app.**
+  - Solución: quitarlo o mover a feedback in-app.
+- 🟡 **Modal "Acerca de" no resuelve el problema real (entender la app).**
+  - Solución: dejarlo como info permanente, complementado por el modal de bienvenida.

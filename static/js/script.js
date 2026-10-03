@@ -1,5 +1,5 @@
 /* ============================================================================
-   🚗 JURIS_PULSE - SCRIPT PRINCIPAL v3.1.7
+🚗 JurisTech_mx - SCRIPT PRINCIPAL v3.2.9
    ============================================================================
    Bloques:
      1.  Estado global
@@ -95,6 +95,10 @@ const DOM = {
     listadoContainer: document.getElementById('listadoContainer'),
     spinnerLote: document.getElementById('spinnerLote'),
     btnSubir: document.getElementById('btnSubir'),
+    modalBienvenida: document.getElementById('modalBienvenida'),
+    btnEntendidoBienvenida: document.getElementById('btnEntendidoBienvenida'),
+    bienvenidaTotal: document.getElementById('bienvenidaTotal'),
+    bienvenidaFecha: document.getElementById('bienvenidaFecha'),
 
     drawer: document.getElementById('drawer'),
     drawerOverlay: document.getElementById('drawerOverlay'),
@@ -201,7 +205,7 @@ function formatearMaterias(materia) {
 
 function log(mensaje, tipo = 'info') {
     const prefijo = tipo === 'error' ? '❌' : (tipo === 'warn' ? '⚠️' : '✅');
-    console.log(`[JURIS_PULSE] ${prefijo} ${mensaje}`);
+    console.log(`[JurisTech_mx] ${prefijo} ${mensaje}`);
 }
 
 
@@ -445,6 +449,7 @@ async function cargarStats() {
         if (data.success && data.stats) {
             AppState.stats = data.stats;
             pintarRangoFechas();
+            mostrarBienvenidaSiEsNecesario();
         }
     } catch (error) {
         log(`Error al cargar stats: ${error.message}`, 'warn');
@@ -685,6 +690,7 @@ async function ejecutarPreguntar() {
         if (!data.success) throw new Error('Respuesta inválida');
 
         AppState.preguntarResultados = data.tesis || [];
+        registrarEvento('busqueda_semantica');
         log(`${AppState.preguntarResultados.length} resultados semánticos.`);
 
         if (DOM.preguntarFiltros) DOM.preguntarFiltros.style.display = 'flex';
@@ -817,6 +823,7 @@ async function ejecutarExacta(resetear = true) {
         if (!data.success) throw new Error('Respuesta inválida');
 
         AppState.exactaTotal = data.total;
+        if (resetear) registrarEvento('busqueda_exacta');
         AppState.exactaResultados = AppState.exactaResultados.concat(data.resultados || []);
         AppState.exactaOffset += AppState.exactaLoteSize;
 
@@ -1119,6 +1126,7 @@ if (DOM.btnCopiarTexto) {
         if (!t) return;
 
         const texto = construirTextoDetalle(t);
+        registrarEvento('copiar_tesis');
 
         // Estrategia 1: API moderna (funciona en HTTPS y localhost)
         if (navigator.clipboard && window.isSecureContext) {
@@ -1307,6 +1315,98 @@ if (DOM.btnCerrarAcercaDe) {
     DOM.btnCerrarAcercaDe.addEventListener('click', cerrarModalAcercaDe);
 }
 
+// ============================================================================
+// EVENTOS (contador de uso · sin telemetría invasiva)
+// ============================================================================
+function registrarEvento(tipo) {
+    // No bloquea la UI. Fire and forget.
+    fetch('/api/jurisprudencias/eventos/registrar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo })
+    }).catch(() => {});  // Silencioso si falla
+}
+
+async function cargarStatsEventos() {
+    try {
+        const response = await fetch('/api/jurisprudencias/eventos/stats');
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!data.success || !data.stats) return;
+        const s = data.stats;
+        console.log('%c[JurisTech_mx] 📊 Estadísticas de uso', 'color:#a78bfa;font-weight:bold');
+        console.log(`   Visitas hoy:               ${s.visitas_hoy}`);
+        console.log(`   Visitas totales:           ${s.visitas_totales}`);
+        console.log(`   Búsquedas semánticas:      ${s.busquedas_semanticas}`);
+        console.log(`   Búsquedas exactas:         ${s.busquedas_exactas}`);
+        console.log(`   Tesis copiadas:            ${s.copiar_tesis}`);
+        console.log(`   Última actividad:          ${s.fecha_ultima_actividad || 'N/A'}`);
+        console.log(`   Costo estimado OpenAI:     $${s.costo_estimado_usd} USD`);
+    } catch (e) {
+        // Silencioso
+    }
+}
+
+// ============================================================================
+// MODAL DE BIENVENIDA (primera visita del día)
+// ============================================================================
+const BIENVENIDA_KEY = 'juristech_mx_bienvenida_fecha';
+
+function obtenerFechaHoy() {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+function abrirModalBienvenida() {
+    if (!DOM.modalBienvenida) return;
+
+    // Llenar con datos dinámicos (si están disponibles)
+    if (DOM.bienvenidaTotal && AppState.stats && AppState.stats.total) {
+        DOM.bienvenidaTotal.innerText = AppState.stats.total.toLocaleString('es-MX');
+    }
+    if (DOM.bienvenidaFecha && AppState.stats && AppState.stats.fecha_max_texto) {
+        DOM.bienvenidaFecha.innerText = AppState.stats.fecha_max_texto;
+    }
+
+    DOM.modalBienvenida.classList.add('visible');
+}
+
+function cerrarModalBienvenida() {
+    if (!DOM.modalBienvenida) return;
+    DOM.modalBienvenida.classList.remove('visible');
+    try {
+        localStorage.setItem(BIENVENIDA_KEY, obtenerFechaHoy());
+    } catch (e) {
+        log(`No se pudo guardar fecha de bienvenida: ${e.message}`, 'warn');
+    }
+}
+
+function mostrarBienvenidaSiEsNecesario() {
+    try {
+        const ultimaFecha = localStorage.getItem(BIENVENIDA_KEY);
+        if (ultimaFecha !== obtenerFechaHoy()) {
+            abrirModalBienvenida();
+        }
+    } catch (e) {
+        // Si localStorage falla, mostramos igual
+        abrirModalBienvenida();
+    }
+}
+
+if (DOM.modalBienvenida) {
+    DOM.modalBienvenida.addEventListener('click', (e) => {
+        if (e.target === DOM.modalBienvenida) cerrarModalBienvenida();
+    });
+}
+
+if (DOM.btnEntendidoBienvenida) {
+    DOM.btnEntendidoBienvenida.addEventListener('click', cerrarModalBienvenida);
+}
+
+
 // --- Botón "Regresar arriba" ---
 if (DOM.btnSubir) {
     DOM.btnSubir.addEventListener('click', () => {
@@ -1328,6 +1428,10 @@ document.addEventListener('DOMContentLoaded', () => {
         cambiarPestana(hash);
     }
 
-    cargarStats();
+       cargarStats();
     cargarIndice();
+
+    // Registrar visita y cargar stats de uso
+    registrarEvento('visita');
+    cargarStatsEventos();
 });

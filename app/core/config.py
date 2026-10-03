@@ -37,7 +37,7 @@ class Settings:
 
     def __init__(self):
         # --- METADATOS ---
-        self.PROJECT_NAME = "JURIS_PULSE_V3"
+        self.PROJECT_NAME = "JurisTech_mx"
         self.DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
         # --- RUTAS ---

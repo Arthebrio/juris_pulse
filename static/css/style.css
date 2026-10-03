@@ -1,6 +1,6 @@
 /* ============================================================================
-   🎨 JURIS_PULSE - HOJA DE ESTILOS v3.1
-   ============================================================================
+   🎨 JurisTech_mx - HOJA DE ESTILOS v3.2.9
+      ============================================================================
    Bloques:
      1.  Variables (paletas claro/oscuro)
      2.  Reset y base
@@ -975,6 +975,142 @@ mark {
         font-size: 18px;
     }
 }
+
+/* ============================================================================
+   15-QUATER. MODAL DE BIENVENIDA
+   ============================================================================ */
+.modal-bienvenida-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(2, 6, 23, 0.85);
+    backdrop-filter: blur(6px);
+    z-index: 300;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-bienvenida-overlay.visible {
+    display: flex;
+}
+
+.modal-bienvenida {
+    background-color: var(--fondo-tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: 16px;
+    max-width: 520px;
+    width: 100%;
+    padding: 28px 24px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    animation: aparecerBienvenida 0.28s ease;
+}
+
+@keyframes aparecerBienvenida {
+    from { opacity: 0; transform: scale(0.96) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.bienvenida-logo {
+    text-align: center;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+    color: var(--texto-principal);
+}
+
+.bienvenida-logo .pulse {
+    color: var(--acento-explorar);
+}
+
+.bienvenida-tagline {
+    text-align: center;
+    color: var(--texto-secundario);
+    font-size: 13px;
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+
+.bienvenida-tagline strong {
+    color: var(--texto-principal);
+}
+
+.bienvenida-opciones {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+.opcion {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 12px 14px;
+    background-color: var(--fondo-principal);
+    border: 1px solid var(--borde);
+    border-left: 4px solid var(--acento);
+    border-radius: 10px;
+}
+
+.opcion.explorar  { border-left-color: var(--acento-explorar); }
+.opcion.preguntar { border-left-color: var(--acento-preguntar); }
+.opcion.exacta    { border-left-color: var(--acento-exacta); }
+
+.opcion-icono {
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.opcion-texto {
+    flex: 1;
+}
+
+.opcion-titulo {
+    font-weight: 900;
+    font-size: 13px;
+    margin-bottom: 2px;
+    color: var(--texto-principal);
+}
+
+.opcion-titulo.explorar  { color: var(--acento-explorar); }
+.opcion-titulo.preguntar { color: var(--acento-preguntar); }
+.opcion-titulo.exacta    { color: var(--acento-exacta); }
+
+.opcion-desc {
+    font-size: 12px;
+    color: var(--texto-secundario);
+    line-height: 1.5;
+}
+
+.bienvenida-footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--texto-tenue);
+    margin-bottom: 18px;
+}
+
+.btn-empezar {
+    width: 100%;
+    background-color: var(--acento);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity var(--transicion);
+}
+
+.btn-empezar:hover {
+    opacity: 0.9;
+}
+
 
 /* ============================================================================
    15-TER. MODAL "ACERCA DE"

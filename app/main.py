@@ -10,7 +10,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logging.info(f"🗄️  Modo de BD activo: {settings.resumen_modo()}")
 
-app = FastAPI(title="JURIS_PULSE_V3", version="1.0.0")
+app = FastAPI(title="JurisTech_mx", version="1.0.0")
 
 # CORS...
 # API router...

@@ -359,6 +359,93 @@ class JurisprudenciaRepository:
             return None
         finally:
             conn.close()
+    
+    # ------------------------------------------------------------------------
+    # MÉTODO 4: REGISTRO DE EVENTOS (contador de uso)
+    # ------------------------------------------------------------------------
+    def registrar_evento(self, tipo: str) -> bool:
+        """
+        Incrementa el contador de un evento para el día actual.
+        Usa UPSERT: si ya existe (fecha, tipo), suma 1. Si no, inserta con 1.
+
+        Tipos esperados:
+          - 'visita'
+          - 'busqueda_semantica'
+          - 'busqueda_exacta'
+          - 'copiar_tesis'
+
+        Devuelve True si tuvo éxito.
+        """
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO eventos (fecha, tipo, contador)
+                VALUES (CURRENT_DATE, %s, 1)
+                ON CONFLICT (fecha, tipo)
+                DO UPDATE SET contador = eventos.contador + 1;
+            """, (tipo,))
+            conn.commit()
+            logger.debug(f"📊 Evento registrado: {tipo}")
+            return True
+        except Exception as e:
+            logger.error(f"❌ Error al registrar evento '{tipo}': {e}")
+            return False
+        finally:
+            conn.close()
+
+    def obtener_eventos_stats(self) -> Dict[str, Any]:
+        """
+        Devuelve estadísticas agregadas de eventos:
+          - visitas_totales
+          - visitas_hoy
+          - busquedas_semanticas
+          - busquedas_exactas
+          - copiar_tesis
+          - fecha_ultima_actividad
+          - costo_estimado_usd
+        """
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            cur.execute("""
+                SELECT
+                    COALESCE(SUM(CASE WHEN tipo = 'visita' THEN contador END), 0) AS visitas_totales,
+                    COALESCE(SUM(CASE WHEN tipo = 'visita' AND fecha = CURRENT_DATE THEN contador END), 0) AS visitas_hoy,
+                    COALESCE(SUM(CASE WHEN tipo = 'busqueda_semantica' THEN contador END), 0) AS busquedas_semanticas,
+                    COALESCE(SUM(CASE WHEN tipo = 'busqueda_exacta' THEN contador END), 0) AS busquedas_exactas,
+                    COALESCE(SUM(CASE WHEN tipo = 'copiar_tesis' THEN contador END), 0) AS copiar_tesis,
+                    MAX(fecha) AS fecha_ultima_actividad
+                FROM eventos;
+            """)
+            fila = dict(cur.fetchone())
+
+            # Costo estimado: cada búsqueda semántica usa 1 embedding de 512 dims
+            # Precio OpenAI text-embedding-3-small: $0.02 por 1M tokens
+            # Un embedding de ~30 tokens = ~$0.0000006 USD (muy bajo)
+            # Redondeamos a $0.00001 por búsqueda para tener un estimado visible
+            costo = fila["busquedas_semanticas"] * 0.00001
+            fila["costo_estimado_usd"] = round(costo, 6)
+
+            # Convertir fecha a ISO string si existe
+            if fila.get("fecha_ultima_actividad"):
+                fila["fecha_ultima_actividad"] = fila["fecha_ultima_actividad"].isoformat()
+
+            return fila
+        except Exception as e:
+            logger.error(f"❌ Error al obtener stats de eventos: {e}")
+            return {
+                "visitas_totales": 0,
+                "visitas_hoy": 0,
+                "busquedas_semanticas": 0,
+                "busquedas_exactas": 0,
+                "copiar_tesis": 0,
+                "fecha_ultima_actividad": None,
+                "costo_estimado_usd": 0.0,
+            }
+        finally:
+            conn.close()
+
 
     # ------------------------------------------------------------------------
         # ------------------------------------------------------------------------

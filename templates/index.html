@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>JURIS_PULSE · Consulta Quirúrgica</title>
+    <title>JurisTech_mx · Consulta Jurídica</title>
 
     <!-- ==================================================================
          [BLOQUE 1] LIBRERÍAS EXTERNAS
-         Font Awesome desde jsdelivr (más confiable en LATAM que cdnjs).
          ================================================================== -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
 
     <!-- ==================================================================
          [BLOQUE 2] CSS PROPIO
          ================================================================== -->
-    <link rel="stylesheet" href="/static/css/style.css?v=3.2.8">
+    <link rel="stylesheet" href="/static/css/style.css?v=3.3.0">
 </head>
 <body data-modo="explorar">
 
@@ -29,8 +28,8 @@
             </button>
 
             <div class="logo" id="logo">
-                <span class="logo-texto">JURIS</span><span class="logo-pulse">_PULSE</span>
-                <span class="logo-compacto">JP</span>
+                <span class="logo-texto">Juris</span><span class="logo-pulse">Tech_mx</span>
+                <span class="logo-compacto">JTM</span>
             </div>
 
             <button id="btnTema" class="btn-icono" aria-label="Cambiar tema">
@@ -70,7 +69,7 @@
             </div>
         </div>
 
-                <!-- ==================================================================
+        <!-- ==================================================================
              [BLOQUE 6] PESTAÑA: EXPLORAR
              ================================================================== -->
         <section class="panel" id="panelExplorar">
@@ -103,7 +102,7 @@
             </div>
         </section>
 
-            <!-- ==================================================================
+        <!-- ==================================================================
              [BLOQUE 7] PESTAÑA: PREGUNTAR
              ================================================================== -->
         <section class="panel" id="panelPreguntar" style="display:none;">
@@ -186,6 +185,7 @@
                 </div>
             </div>
         </section>
+
         <!-- ==================================================================
              [BLOQUE 9] LISTADO DE RESULTADOS
              ================================================================== -->
@@ -206,7 +206,7 @@
 
     </main>
 
-       <!-- ==================================================================
+    <!-- ==================================================================
          [BLOQUE 11] DRAWER (menú lateral)
          ================================================================== -->
     <aside class="drawer" id="drawer">
@@ -219,7 +219,7 @@
 
         <nav class="drawer-nav">
             <a href="#" class="drawer-item" id="btnAcercaDe">
-                <i class="fas fa-info-circle"></i> Acerca de JURIS_PULSE
+                <i class="fas fa-info-circle"></i> Acerca de JurisTech_mx
             </a>
             <a href="#" class="drawer-item">
                 <i class="fas fa-book"></i> Guía de uso
@@ -236,7 +236,7 @@
         </nav>
 
         <div class="drawer-footer">
-            <small>Versión 3.2.8 · 2026</small>
+            <small>Versión 3.2.9 · 2026</small>
         </div>
     </aside>
 
@@ -276,9 +276,8 @@
         </div>
     </div>
 
-        <!-- ==================================================================
+    <!-- ==================================================================
          [BLOQUE 12-BIS] TOOLTIP DE RESUMEN IA
-         Se abre al hacer clic en "🤖 Resumen IA" de una tarjeta.
          ================================================================== -->
     <div class="tooltip-overlay" id="tooltipOverlay">
         <div class="tooltip">
@@ -294,52 +293,102 @@
         </div>
     </div>
 
-        <!-- ==================================================================
+    <!-- ==================================================================
          [BLOQUE 12-TER] MODAL "ACERCA DE"
-         Se abre desde el drawer. Estilo consistente con el tooltip de Resumen IA.
          ================================================================== -->
     <div class="modal-acerca-overlay" id="modalAcercaDe">
         <div class="modal-acerca">
             <div class="modal-acerca-header">
                 <div class="modal-acerca-titulo">
                     <i class="fas fa-info-circle"></i>
-                    Acerca de JURIS_PULSE
+                    Acerca de JurisTech_mx
                 </div>
                 <button class="modal-acerca-cerrar" id="btnCerrarAcercaDe" aria-label="Cerrar">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-acerca-cuerpo">
-                <p class="modal-acerca-app"><strong>JURIS_PULSE v3.2.8</strong></p>
+                <p class="modal-acerca-app"><strong>JurisTech_mx v3.2.9</strong></p>
                 <p>Consulta quirúrgica de jurisprudencias del Semanario Judicial de la Federación.</p>
-                <p class="modal-acerca-meta">Corpus actualizado al 25 de septiembre de 2026 · 27,626 tesis.</p>
+                <p class="modal-acerca-meta">Corpus actualizado al 2 de octubre de 2026 · 27,665 tesis.</p>
                 <p class="modal-acerca-creditos">Desarrollado con FastAPI · Supabase · OpenAI.</p>
             </div>
         </div>
     </div>
 
+    <!-- ==================================================================
+         [BLOQUE 12-QUATER] MODAL DE BIENVENIDA (primera visita)
+         ================================================================== -->
+    <div class="modal-bienvenida-overlay" id="modalBienvenida">
+        <div class="modal-bienvenida">
 
+            <div class="bienvenida-logo">
+                Juris<span class="pulse">Tech_mx</span>
+            </div>
+
+            <p class="bienvenida-tagline">
+                Consulta <strong><span id="bienvenidaTotal">...</span> jurisprudencias</strong>
+                del Semanario Judicial de la Federación en segundos, actualizadas al
+                <strong><span id="bienvenidaFecha">...</span></strong>.
+            </p>
+
+            <div class="bienvenida-opciones">
+
+                <div class="opcion explorar">
+                    <div class="opcion-icono">🔍</div>
+                    <div class="opcion-texto">
+                        <div class="opcion-titulo explorar">Explorar</div>
+                        <div class="opcion-desc">Filtra por tipo, materia y busca dentro del rubro.</div>
+                    </div>
+                </div>
+
+                <div class="opcion preguntar">
+                    <div class="opcion-icono">🧠</div>
+                    <div class="opcion-texto">
+                        <div class="opcion-titulo preguntar">Preguntar</div>
+                        <div class="opcion-desc">Describe tu caso en lenguaje natural. La IA busca por significado.</div>
+                    </div>
+                </div>
+
+                <div class="opcion exacta">
+                    <div class="opcion-icono">🔤</div>
+                    <div class="opcion-texto">
+                        <div class="opcion-titulo exacta">Exacta</div>
+                        <div class="opcion-desc">Busca una palabra o frase literal en todo el texto de las tesis.</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <p class="bienvenida-footer">
+                Gratis · Sin registro · Corrección de acentos automática
+            </p>
+
+            <button class="btn-empezar" id="btnEntendidoBienvenida">
+                Entendido, empecemos
+            </button>
+
+        </div>
+    </div>
 
     <!-- ==================================================================
          [BLOQUE 13] FOOTER
          ================================================================== -->
     <footer>
-        © 2026 JURIS_PULSE · Consulta Quirúrgica
+        © 2026 JurisTech_mx · Todos los derechos reservados
     </footer>
 
-        <!-- ==================================================================
+    <!-- ==================================================================
          [BLOQUE 13-BIS] BOTÓN FLOTANTE "REGRESAR ARRIBA"
-         Aparece al hacer scroll. Sube suavemente al inicio.
          ================================================================== -->
     <button id="btnSubir" class="btn-subir" aria-label="Regresar arriba">
         <i class="fas fa-arrow-up"></i>
     </button>
 
-
     <!-- ==================================================================
          [BLOQUE 14] SCRIPT PRINCIPAL
          ================================================================== -->
-    <script src="/static/js/script.js?v=3.2.7" defer></script>
+    <script src="/static/js/script.js?v=3.3.0" defer></script>
 
 </body>
 </html>

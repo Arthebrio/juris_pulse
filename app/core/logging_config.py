@@ -37,7 +37,7 @@ LOG_FORMAT = "%(asctime)s - [%(levelname)s] - %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 # Creamos el logger principal del backend
-logger = logging.getLogger("JURIS_PULSE_BACKEND")
+logger = logging.getLogger("JurisTech_mx_BACKEND")
 logger.setLevel(logging.DEBUG)
 
 # ============================================================================

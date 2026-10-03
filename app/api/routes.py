@@ -218,6 +218,44 @@ async def obtener_detalle(registro_digital: int):
         logger.error(f"❌ Error en /detalle/{registro_digital}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============================================================================
+# ENDPOINTS 5 y 6: EVENTOS (contador de uso)
+# ============================================================================
+class EventoRequest(BaseModel):
+    tipo: str
+
+
+@router.post("/eventos/registrar")
+async def registrar_evento(peticion: EventoRequest):
+    """
+    Registra un evento de uso. Tipos permitidos:
+      - 'visita'
+      - 'busqueda_semantica'
+      - 'busqueda_exacta'
+      - 'copiar_tesis'
+    """
+    TIPOS_VALIDOS = {"visita", "busqueda_semantica", "busqueda_exacta", "copiar_tesis"}
+    if peticion.tipo not in TIPOS_VALIDOS:
+        raise HTTPException(status_code=400, detail=f"Tipo no válido: {peticion.tipo}")
+    try:
+        exito = jurisprudencia_service.registrar_evento(peticion.tipo)
+        return {"success": exito}
+    except Exception as e:
+        logger.error(f"❌ Error en /eventos/registrar: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/eventos/stats")
+async def eventos_stats():
+    """
+    Devuelve estadísticas agregadas de uso.
+    """
+    try:
+        stats = jurisprudencia_service.obtener_eventos_stats()
+        return {"success": True, "stats": stats}
+    except Exception as e:
+        logger.error(f"❌ Error en /eventos/stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================================
 # ENDPOINT 4: BÚSQUEDA SEMÁNTICA (la joya de la corona)

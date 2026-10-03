@@ -87,3 +87,13 @@ de consulta quirúrgica de jurisprudencias.
     ```sql
     WHERE unaccent(rubro) ILIKE unaccent(%s)
        OR unaccent(resumen_ia) ILIKE unaccent(%s)
+
+       - [x] **Contador de eventos (sin telemetría invasiva)** (03/10/2026):
+  - Tabla `eventos` en Supabase: `(fecha, tipo, contador)`.
+  - Endpoints: `POST /eventos/registrar`, `GET /eventos/stats`.
+  - Tipos registrados: `visita`, `busqueda_semantica`, `busqueda_exacta`, `copiar_tesis`.
+  - Frontend: muestra stats en consola (`console.log`) al arrancar.
+  - Costo estimado OpenAI mostrado: ~$0.00001 USD por búsqueda semántica.
+- [x] **Modal de bienvenida: primera visita del día** (03/10/2026):
+  - Antes: solo la primera vez (por siempre).
+  - Ahora: la primera vez **de cada día** (localStorage con fecha).

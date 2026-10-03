@@ -1,0 +1,4 @@
+- [ ] **Favicon del navegador**
+  - El navegador busca `/favicon.ico` y devuelve 404.
+  - Solución: agregar un favicon simple (`.png` de 32x32).
+  - No urgente.
