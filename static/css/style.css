@@ -707,6 +707,58 @@ mark {
     color: var(--texto-secundario);
 }
 
+/* Contacto dentro del drawer */
+.drawer-contacto {
+    cursor: default;
+    align-items: flex-start;
+}
+
+.drawer-contacto:hover {
+    background-color: transparent;
+}
+
+.drawer-contacto > i {
+    margin-top: 2px;
+}
+
+.drawer-contacto-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.drawer-contacto-label {
+    font-size: 13px;
+    color: var(--texto-principal);
+}
+
+.drawer-contacto-email {
+    font-size: 11px;
+    color: var(--texto-secundario);
+    word-break: break-all;
+    margin-top: 2px;
+}
+
+.drawer-contacto-copiar {
+    background: transparent;
+    border: none;
+    color: var(--texto-secundario);
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: background var(--transicion), color var(--transicion);
+    flex-shrink: 0;
+    font-family: inherit;
+}
+
+.drawer-contacto-copiar:hover {
+    background-color: var(--fondo-input);
+    color: var(--texto-principal);
+}
+
+
 .drawer-footer {
     padding: 16px;
     border-top: 1px solid var(--borde);

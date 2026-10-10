@@ -1,99 +1,105 @@
-# 📓 BITÁCORA · JURIS_PULSE v3
+# 📓 BITÁCORA · JurisTech_mx
 
-Registro de avances, decisiones técnicas y pendientes del proyecto
-de consulta quirúrgica de jurisprudencias.
+Registro de avances, decisiones y estado del proyecto.
+La deuda técnica vive en `DEUDA_TECNICA.md` (no duplicar aquí).
 
-**Última actualización:** 24 de septiembre de 2026
-**Versión actual de la app:** 3.2.0
-
----
-
-## ✅ Avances completados
-
-### 🎨 Frontend / UX
-
-- [x] **Rediseño de 3 pestañas:** Explorar · Preguntar · Exacta
-- [x] **Modo claro / oscuro** con persistencia en `localStorage`
-- [x] **Drawer** (menú lateral) con opciones
-- [x] **Header fijo** con estado expandido/compacto al scroll
-- [x] **Dashboard** con total de tesis y rango exacto de fechas
-- [x] **Scroll infinito** con carga por lotes (200 + 100)
-- [x] **Hidratación de resúmenes IA** por lotes (evita descargar 27k de golpe)
-- [x] **Rediseño de tarjetas** con diseño homogéneo (3 columnas arriba + 3 abajo)
-- [x] **Score discreto** en búsqueda semántica (escala visual 7.9–10.2)
-- [x] **Tooltip de Resumen IA** con borde del color del modo
-- [x] **Botón flotante "Regresar arriba"** que aparece al hacer scroll
-- [x] **Simplificación de mensajes** redundantes (menos es más)
-- [x] **Cache busting** con `?v=N` en CSS y JS
-- [x] **Iconos desde jsdelivr** (más confiable en LATAM que cdnjs)
-- [x] **Pull-to-refresh desactivado** (`overscroll-behavior-y: contain`)
-
-### ⚙️ Backend
-
-- [x] **FastAPI** con estructura: routes → services → repos
-- [x] **Endpoint `/indice`** → corpus sin `resumen_ia` (11 MB vs 40 MB)
-- [x] **Endpoint `/resumenes`** → resúmenes IA por lote (POST)
-- [x] **Endpoint `/stats`** → total y rango de fechas exactas
-- [x] **Endpoint `/buscar/semantica`** → búsqueda por embeddings
-- [x] **Endpoint `/buscar/exacta`** → búsqueda literal con paginación
-- [x] **Endpoint `/detalle/{registro}`** → detalle completo sin embedding
-- [x] **Filtro anti-`1900-01-01`** en stats (evita fecha fantasma)
-- [x] **Cache-Control** en HTML para evitar cacheo de la raíz
-
-### 🗄️ Base de datos
-
-- [x] **PostgreSQL local** con 27,581 tesis
-- [x] **pgvector** con embeddings de 1536 dimensiones
-- [x] **Índice HNSW** para búsqueda semántica rápida
-- [x] **Check constraint** `check_estructura_tesis` (formato viejo O nuevo, nunca mezcla)
-- [x] **Tabla replicada en Supabase** (vacía, lista para migrar)
-- [x] **RLS activado** en Supabase
-- [x] **3 índices creados en Supabase** (primario, único, HNSW)
-
-### 📚 Datos
-
-- [x] **27,581 tesis** extraídas, enriquecidas y cargadas
-- [x] **Resúmenes IA** generados (80–105 palabras cada uno)
-- [x] **Embeddings enriquecidos** (rubro + conceptos + resumen)
-- [x] **Actualización semanal** los viernes con las tesis nuevas del SJF
-- [x] **Script `calibrar_semantica.py`** para análisis de scores
-
-### 🧠 Decisiones técnicas documentadas
-
-- [x] **Cache busting** es estándar industrial (HTML fresco, assets con versión)
-- [x] **Embeddings Matryoshka:** se pueden recortar de 1536 → 512 dims sin costo extra
-- [x] **Score relativo** en vez de badges Alta/Media/Baja (los buckets son arbitrarios)
-- [x] **Niveles de similitud:** convertir a escala 1-10 sumando 3 a `similitud × 10`
-- [x] **Menos es más:** los colores viven en la navegación, no en el contenido
-- [x] **Borde del color del modo** = contexto visual de la pestaña activa
+**Última actualización:** 03 de octubre de 2026
+**Versión activa:** v3.3.0
+**Estado:** En producción · aceptando feedback de usuarios reales.
 
 ---
 
-## 📋 Pendientes
+## 🏗️ Arquitectura (las 2 carpetas)
 
-### 🔴 Alta prioridad
+El proyecto vive en **dos carpetas independientes**:
 
-- [ ] **Migración a Supabase**
-  - [ ] Reducir embeddings de 1536 → 512 dims (Matryoshka, sin costo)
-  - [ ] `pg_dump` de local sin `texto_vectorial`
-  - [ ] Importar en Supabase
-  - [ ] Cambiar cadena de conexión en el backend
-  - [ ] Probar los 6 endpoints desde Supabase
+### 📁 `practica_python/` — La Fábrica (local, Linux Mint)
+Donde se procesa y enriquece la información **antes** de publicarla.
 
-- [ ] **Búsqueda exacta insensible a mayúsculas, minúsculas y acentos**
-  - Actualmente usa `ILIKE` (ignora mayúsculas/minúsculas pero **no acentos**).
-  - Ejemplo del problema: "tortura" encuentra "TORTURA" pero "aplicacion" **no** encuentra "aplicación".
-  - **Solución propuesta:** activar la extensión `unaccent` en PostgreSQL y cambiar la consulta a:
-    ```sql
-    WHERE unaccent(rubro) ILIKE unaccent(%s)
-       OR unaccent(resumen_ia) ILIKE unaccent(%s)
+- Recibe los PDFs semanales del SJF en `data/`.
+- Extrae texto (`modulo1_*.py`).
+- Enriquece con IA (`modulo1_5_enriquecimiento.py`).
+- Genera embeddings (`poblar_*.py`).
+- Puebla la **BD local** (`practica_legal`).
+- **Sube a Supabase** con `subir_a_supabase.py`.
+- Scripts auxiliares de auditoría y análisis.
 
-       - [x] **Contador de eventos (sin telemetría invasiva)** (03/10/2026):
-  - Tabla `eventos` en Supabase: `(fecha, tipo, contador)`.
-  - Endpoints: `POST /eventos/registrar`, `GET /eventos/stats`.
-  - Tipos registrados: `visita`, `busqueda_semantica`, `busqueda_exacta`, `copiar_tesis`.
-  - Frontend: muestra stats en consola (`console.log`) al arrancar.
-  - Costo estimado OpenAI mostrado: ~$0.00001 USD por búsqueda semántica.
-- [x] **Modal de bienvenida: primera visita del día** (03/10/2026):
-  - Antes: solo la primera vez (por siempre).
-  - Ahora: la primera vez **de cada día** (localStorage con fecha).
+**Aquí NO se hace frontend ni backend.** Solo procesamiento de datos.
+
+### 📁 `juris_pulse_v3/` — La Aplicación (deployable)
+Lo que ve el usuario.
+
+- **Backend:** FastAPI en `app/`.
+- **Frontend:** HTML/CSS/JS en `templates/` y `static/`.
+- **Deploy:** Render (plan Free).
+- **BD de producción:** Supabase.
+- **BD local de desarrollo:** `practica_legal` (misma que la fábrica).
+
+**Aquí NO se procesan PDFs.** Solo se sirven datos.
+
+### 🗄️ Bases de datos
+- **Local (`practica_legal`):** fuente de verdad. Solo la toca la fábrica.
+- **Supabase:** espejo público. Solo lo lee la aplicación.
+- **Actualización:** cada viernes, la fábrica procesa lo nuevo y sube a Supabase.
+
+---
+
+## 🎯 Estado actual
+
+### ✅ Backend
+- FastAPI en Render (plan Free).
+- Switch local/Supabase con `DB_ENV`.
+- Embeddings adaptativos: 1536 (local) / 512 (Supabase).
+- 6 endpoints funcionales: `/indice`, `/stats`, `/resumenes`, `/buscar/semantica`, `/buscar/exacta`, `/detalle/{reg}`, `/eventos/registrar`, `/eventos/stats`.
+
+### ✅ Frontend
+- 3 pestañas: **Explorar**, **Preguntar**, **Exacta**.
+- Búsqueda semántica con IA (score 1-10).
+- Búsqueda exacta sobre 5 campos con `unaccent`.
+- Resaltado de término en amarillo (tarjetas + cortina).
+- Modo claro / oscuro persistente.
+- Modal de bienvenida (primera visita del día).
+- Tooltip de Resumen IA.
+- Botón "Regresar arriba".
+- Modal "Acerca de".
+- Drawer con contacto.
+- Cache busting (`?v=N`).
+- Favicon 404 (deuda técnica).
+
+### ✅ Datos
+- **27,665 tesis** en local y Supabase.
+- Embeddings de 512 dims (Matryoshka, sin pérdida perceptible).
+- Índice HNSW (Supabase) para búsqueda semántica.
+- Índice GIN trigramas (Supabase) para búsqueda exacta.
+- `unaccent` activado en ambos entornos.
+
+### ✅ Infraestructura
+- GitHub: `Arthebrio/juris_pulse`.
+- Render: `juris-pulse.onrender.com` (auto-deploy).
+- Supabase: proyecto `lonayjblwyjzagijonfu`.
+
+### ✅ Contador de eventos
+- Tabla `eventos` en Supabase: `(fecha, tipo, contador)`.
+- Registra: `visita`, `busqueda_semantica`, `busqueda_exacta`, `copiar_tesis`.
+- Stats mostradas en consola del navegador (F12).
+- Costo OpenAI estimado visible.
+
+---
+
+## 🎨 Marca
+
+- **Nombre visible:** `JurisTech_mx`.
+- **Nombre de carpetas/repo:** `juris_pulse_v3` / `juris_pulse` (no se cambia).
+- **Claim:** "Consulta quirúrgica de jurisprudencias del SJF".
+- **Copyright:** "© 2026 JurisTech_mx · Todos los derechos reservados".
+
+---
+
+## 📅 Ritual del viernes
+
+1. **Bajar** los PDFs del SJF → `practica_python/data/`.
+2. **Procesar** con el pipeline de la fábrica (extraer → enriquecer → embeddings).
+3. **Poblar** la BD local (`practica_legal`).
+4. **Rellenar** `embedding_512` de las nuevas:
+   ```sql
+   UPDATE jurisprudencias SET embedding_512 = (SELECT ('[' || array_to_string((string_to_array(trim(both '[]' from embedding::text), ','))[1:512], ',') || ']')::vector(512)) WHERE embedding_512 IS NULL;

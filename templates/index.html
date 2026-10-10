@@ -13,7 +13,7 @@
     <!-- ==================================================================
          [BLOQUE 2] CSS PROPIO
          ================================================================== -->
-    <link rel="stylesheet" href="/static/css/style.css?v=3.3.0">
+    <link rel="stylesheet" href="/static/css/style.css?v=3.3.2">
 </head>
 <body data-modo="explorar">
 
@@ -221,18 +221,19 @@
             <a href="#" class="drawer-item" id="btnAcercaDe">
                 <i class="fas fa-info-circle"></i> Acerca de JurisTech_mx
             </a>
-            <a href="#" class="drawer-item">
-                <i class="fas fa-book"></i> Guía de uso
+            <a href="#" class="drawer-item" id="btnGuiaUso">
+                <i class="fas fa-book"></i> ¿Cómo se usa?
             </a>
-            <a href="#" class="drawer-item">
-                <i class="fas fa-keyboard"></i> Atajos de teclado
-            </a>
-            <a href="#" class="drawer-item">
-                <i class="fas fa-history"></i> Novedades
-            </a>
-            <a href="mailto:arturogrt@hotmail.com" class="drawer-item">
-                <i class="fas fa-envelope"></i> Contacto
-            </a>
+            <div class="drawer-item drawer-contacto" id="drawerContacto">
+                <i class="fas fa-envelope"></i>
+                <div class="drawer-contacto-info">
+                    <span class="drawer-contacto-label">Contacto</span>
+                    <span class="drawer-contacto-email">lexia.tech.mx@gmail.com</span>
+                </div>
+                <button class="drawer-contacto-copiar" id="btnCopiarEmail" aria-label="Copiar correo">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
         </nav>
 
         <div class="drawer-footer">
@@ -308,10 +309,11 @@
                 </button>
             </div>
             <div class="modal-acerca-cuerpo">
-                <p class="modal-acerca-app"><strong>JurisTech_mx v3.2.9</strong></p>
+                <p class="modal-acerca-app"><strong>JurisTech_mx</strong></p>
                 <p>Consulta quirúrgica de jurisprudencias del Semanario Judicial de la Federación.</p>
                 <p class="modal-acerca-meta">Corpus actualizado al 2 de octubre de 2026 · 27,665 tesis.</p>
-                <p class="modal-acerca-creditos">Desarrollado con FastAPI · Supabase · OpenAI.</p>
+                <p class="modal-acerca-meta">Herramienta en evolución. Tu retroalimentación es bienvenida.</p>
+                <p class="modal-acerca-creditos">Hecho en México · 2026</p>
             </div>
         </div>
     </div>
@@ -388,7 +390,7 @@
     <!-- ==================================================================
          [BLOQUE 14] SCRIPT PRINCIPAL
          ================================================================== -->
-    <script src="/static/js/script.js?v=3.3.0" defer></script>
+    <script src="/static/js/script.js?v=3.3.2" defer></script>
 
 </body>
 </html>

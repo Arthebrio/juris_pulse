@@ -104,6 +104,8 @@ const DOM = {
     drawerOverlay: document.getElementById('drawerOverlay'),
     btnCerrarDrawer: document.getElementById('btnCerrarDrawer'),
     btnAcercaDe: document.getElementById('btnAcercaDe'),
+    btnGuiaUso: document.getElementById('btnGuiaUso'),
+    btnCopiarEmail: document.getElementById('btnCopiarEmail'),
     modalAcercaDe: document.getElementById('modalAcercaDe'),
     btnCerrarAcercaDe: document.getElementById('btnCerrarAcercaDe'),
 
@@ -1283,15 +1285,58 @@ if (DOM.btnAcercaDe) {
     });
 }
 
+if (DOM.btnGuiaUso) {
+    DOM.btnGuiaUso.addEventListener('click', (e) => {
+        e.preventDefault();
+        cerrarDrawer();
+        abrirModalBienvenida();
+    });
+}
+
+// --- Copiar correo de contacto ---
+if (DOM.btnCopiarEmail) {
+    DOM.btnCopiarEmail.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const email = 'lexia.tech.mx@gmail.com';
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(email).then(
+                () => mostrarFeedbackEmail(true),
+                () => {
+                    const exito = copiarConExecCommand(email);
+                    mostrarFeedbackEmail(exito);
+                }
+            );
+            return;
+        }
+
+        const exito = copiarConExecCommand(email);
+        mostrarFeedbackEmail(exito);
+    });
+}
+
+function mostrarFeedbackEmail(exito) {
+    if (!DOM.btnCopiarEmail) return;
+    const icono = DOM.btnCopiarEmail.querySelector('i');
+    if (!icono) return;
+    if (exito) {
+        icono.className = 'fas fa-check';
+    } else {
+        icono.className = 'fas fa-times';
+    }
+    setTimeout(() => {
+        icono.className = 'fas fa-copy';
+    }, 2000);
+}
+
 // Cerrar el drawer al hacer clic en items sin función
 document.querySelectorAll('.drawer-item').forEach(item => {
     item.addEventListener('click', (e) => {
-        if (item.id === 'btnAcercaDe') return;          // ya manejado arriba
-        const href = item.getAttribute('href');
-        if (href && href.startsWith('mailto:')) {       // contacto: abrir mail
-            cerrarDrawer();
-            return;
-        }
+        // Items que manejan su propia lógica o no deben cerrar
+        if (item.id === 'btnAcercaDe' ||
+            item.id === 'btnGuiaUso' ||
+            item.id === 'drawerContacto') return;
+
         e.preventDefault();
         cerrarDrawer();
     });
